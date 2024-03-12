@@ -1,6 +1,6 @@
 #include <kengine/kengine.hpp>
 
 int main(int argc, char** argv) {
-	KEngine kengine;
+	kengine::KEngine kengine;
 	return kengine.main();
 }

@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <kengine/graphics/renderer.hpp>
 
+namespace kengine {
+
 typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -19,13 +21,15 @@ typedef double f64;
 
 class KEngine {
 private:
-	KRenderer* m_renderer;
+	graphics::KRenderer* m_renderer;
 
 public:
 	KEngine();
-	KEngine(KRenderer* renderer);
+	KEngine(graphics::KRenderer* renderer);
 
 	int main();
 };
+
+} // namespace kengine
 
 #endif

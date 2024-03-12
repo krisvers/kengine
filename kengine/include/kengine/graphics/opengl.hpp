@@ -3,10 +3,14 @@
 
 #include <kengine/graphics/renderer.hpp>
 
+namespace kengine::graphics {
+
 class KRendererOpenGL : public KRenderer {
 	virtual void init();
 	virtual void draw();
 	virtual void destroy();
 };
+
+} // namespace kengine::graphics
 
 #endif

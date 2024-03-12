@@ -1,11 +1,13 @@
 #include <kengine/kengine.hpp>
 #include <kengine/graphics/opengl.hpp>
 
+namespace kengine {
+
 KEngine::KEngine() {
-	m_renderer = new KRendererOpenGL();
+	m_renderer = new graphics::KRendererOpenGL();
 }
 
-KEngine::KEngine(KRenderer* renderer) {
+KEngine::KEngine(graphics::KRenderer* renderer) {
 	m_renderer = renderer;
 }
 
@@ -16,3 +18,5 @@ int KEngine::main() {
 	}
 	m_renderer->destroy();
 }
+
+} // namespace kengine

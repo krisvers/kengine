@@ -1,9 +1,7 @@
 #ifndef KRISVERS_KENGINE_GRAPHICS_RENDERER_HPP
 #define KRISVERS_KENGINE_GRAPHICS_RENDERER_HPP
 
-class KRenderer;
-
-#include <kengine/kengine.hpp>
+namespace kengine::graphics {
 
 class KRenderer {
 public:
@@ -11,5 +9,7 @@ public:
 	virtual void draw() = 0;
 	virtual void destroy() = 0;
 };
+
+} // namespace kengine::graphics
 
 #endif
