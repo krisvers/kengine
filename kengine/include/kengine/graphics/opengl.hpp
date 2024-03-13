@@ -2,13 +2,20 @@
 #define KRISVERS_KENGINE_GRAPHICS_OPENGL_HPP
 
 #include <kengine/graphics/renderer.hpp>
+#include <kengine/types.hpp>
 
 namespace kengine::graphics {
 
-class KRendererOpenGL : public KRenderer {
+struct RendererOpenGLBackend;
+
+class RendererOpenGL : public IRenderer {
+public:
 	virtual void init();
-	virtual void draw();
+	virtual void render();
 	virtual void destroy();
+
+private:
+	struct RendererOpenGLBackend* backend;
 };
 
 } // namespace kengine::graphics

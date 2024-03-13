@@ -1,17 +1,22 @@
 #include <kengine/graphics/opengl.hpp>
 #include <iostream>
+#include <glad/glad.h>
 
 namespace kengine::graphics {
 
-void KRendererOpenGL::init() {
+struct RendererOpenGLBackend {
+
+};
+
+void RendererOpenGL::init() {
 	std::cout << "opengl init\n";
 }
 
-void KRendererOpenGL::draw() {
+void RendererOpenGL::render() {
 	std::cout << "opengl draw\n";
 }
 
-void KRendererOpenGL::destroy() {
+void RendererOpenGL::destroy() {
 	std::cout << "opengl destroy\n";
 }
 
