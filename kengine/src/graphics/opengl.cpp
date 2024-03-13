@@ -13,7 +13,7 @@ void RendererOpenGL::init() {
 }
 
 void RendererOpenGL::render() {
-	std::cout << "opengl draw\n";
+	//std::cout << "opengl draw\n";
 }
 
 void RendererOpenGL::destroy() {

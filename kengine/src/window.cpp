@@ -1,24 +1,48 @@
 #include <kengine/window.hpp>
+#include <kengine/logger.hpp>
+#include <kengine/input/input.hpp>
+
 #include <GLFW/glfw3.h>
+
 #include <exception>
 #include <stdexcept>
 #include <iostream>
 
-#define GLFW_INIT() if (!glfwInited) { if (!glfwInit()) { throw std::runtime_error("Failed to init GLFW"); } }
+#define GLFW_INIT() if (!glfwInited) { glfwSetErrorCallback(WindowCallbacks::glfwErrorCallback); if (!glfwInit()) { throw std::runtime_error("Failed to init GLFW"); } }
 #define INTERNAL reinterpret_cast<GLFWwindow*>(m_internal)
-
-static bool glfwInited = false;
-
-static void glfwlogger(int err, const char* msg) {
-	std::cout << msg << " err: " << err << "\n";
-}
 
 namespace kengine {
 
+static bool glfwInited = false;
+
+struct WindowCallbacks {
+	static void glfwErrorCallback(int err, const char* msg);
+	static void glfwWindowCloseCallback(GLFWwindow* window);
+	static void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int mods, int action);
+};
+
+static constexpr input::InputKey glfwKeyToInputKey(int key) {
+	if (key >= 340) {
+		return static_cast<input::InputKey>((key - 340) + static_cast<u32>(input::InputKey::KEY_LSHIFT));
+	}
+	if (key >= 320) {
+		return static_cast<input::InputKey>((key - 320) + static_cast<u32>(input::InputKey::KEY_NUMPAD_0));
+	}
+	if (key >= 290) {
+		return static_cast<input::InputKey>((key - 290) + static_cast<u32>(input::InputKey::KEY_F1));
+	}
+	if (key >= 280) {
+		return static_cast<input::InputKey>((key - 280) + static_cast<u32>(input::InputKey::KEY_CAPS_LOCK));
+	}
+	if (key >= 256) {
+		return static_cast<input::InputKey>((key - 256) + static_cast<u32>(input::InputKey::KEY_ESCAPE));
+	}
+
+	return static_cast<input::InputKey>(key);
+}
+
 Window::Window(u32 width, u32 height, const char* title) {
-	//GLFW_INIT();
-	glfwInit();
-	glfwSetErrorCallback(glfwlogger);
+	GLFW_INIT();
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
@@ -30,10 +54,46 @@ Window::Window(u32 width, u32 height, const char* title) {
 
 	m_internal = internal;
 	glfwSetWindowUserPointer(INTERNAL, this);
+	glfwSetWindowCloseCallback(INTERNAL, WindowCallbacks::glfwWindowCloseCallback);
 }
 
 void Window::hide() {
 	
+}
+
+void Window::show() {
+	
+}
+
+int Window::update() {
+	glfwPollEvents();
+	if (m_closed) {
+		return 1;
+	}
+
+	return 0;
+}
+
+void Window::swapBuffers() {
+	glfwSwapBuffers(INTERNAL);
+}
+
+void Window::inputPipeKey(input::InputKey key, bool value) {
+	input::input::setKey(key, value);
+}
+
+void WindowCallbacks::glfwErrorCallback(int err, const char* msg) {
+	logger::printf(kengine::LogType::ERROR, "GLFW error %x: %s", err, msg);
+}
+
+void WindowCallbacks::glfwWindowCloseCallback(GLFWwindow* window) {
+	Window* w = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+	w->m_closed = true;
+}
+
+void WindowCallbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int mods, int action) {
+	input::InputKey ikey = glfwKeyToInputKey(key);
+	Window::inputPipeKey(ikey, (action != 0));
 }
 
 }

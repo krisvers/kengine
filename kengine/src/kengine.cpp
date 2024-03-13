@@ -1,5 +1,6 @@
 #include <kengine/kengine.hpp>
 #include <kengine/window.hpp>
+#include <kengine/logger.hpp>
 #include <kengine/graphics/opengl.hpp>
 
 namespace kengine {
@@ -13,11 +14,18 @@ KEngine::KEngine(graphics::IRenderer* renderer) : m_window(800, 600) {
 }
 
 int KEngine::main() {
+	logger::printf(LogType::WARNING, "hello, world %s %f\n", "102", 69.420f);
+	m_window.show();
 	m_renderer->init();
-	while (true) {
+	while (!m_window.m_closed) {
 		m_renderer->render();
+		m_window.swapBuffers();
+		if (m_window.update() != 0) {
+			break;
+		}
 	}
 	m_renderer->destroy();
+	return 0;
 }
 
 } // namespace kengine
