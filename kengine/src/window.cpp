@@ -19,6 +19,7 @@ struct WindowCallbacks {
 	static void glfwErrorCallback(int err, const char* msg);
 	static void glfwWindowCloseCallback(GLFWwindow* window);
 	static void glfwKeyCallback(GLFWwindow* window, int key, int scancode, int mods, int action);
+	static void glfwWindowSizeCallback(GLFWwindow* window, int width, int height);
 };
 
 static constexpr input::InputKey glfwKeyToInputKey(int key) {
@@ -52,9 +53,16 @@ Window::Window(u32 width, u32 height, const char* title) {
 		throw std::runtime_error("Failed to create GLFW window");
 	}
 
+	m_width = width;
+	m_height = height;
+
 	m_internal = internal;
 	glfwSetWindowUserPointer(INTERNAL, this);
 	glfwSetWindowCloseCallback(INTERNAL, WindowCallbacks::glfwWindowCloseCallback);
+	glfwSetKeyCallback(INTERNAL, WindowCallbacks::glfwKeyCallback);
+	glfwSetWindowSizeCallback(INTERNAL, WindowCallbacks::glfwWindowSizeCallback);
+
+	glfwMakeContextCurrent(INTERNAL);
 }
 
 void Window::hide() {
@@ -91,9 +99,15 @@ void WindowCallbacks::glfwWindowCloseCallback(GLFWwindow* window) {
 	w->m_closed = true;
 }
 
-void WindowCallbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int mods, int action) {
+void WindowCallbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	input::InputKey ikey = glfwKeyToInputKey(key);
 	Window::inputPipeKey(ikey, (action != 0));
+}
+
+void WindowCallbacks::glfwWindowSizeCallback(GLFWwindow* window, int width, int height) {
+	Window* w = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+	w->m_width = width;
+	w->m_height = height;
 }
 
 }

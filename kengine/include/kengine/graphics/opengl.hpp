@@ -15,7 +15,7 @@ public:
 	virtual void destroy();
 
 private:
-	struct RendererOpenGLBackend* backend;
+	struct RendererOpenGLBackend* m_backend;
 };
 
 } // namespace kengine::graphics
