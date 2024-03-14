@@ -7,7 +7,7 @@
 namespace kengine {
 
 KEngine::KEngine() : m_window(800, 600) {
-	m_renderer = new graphics::RendererOpenGL();
+	m_renderer = graphics::createOpenGLRenderer();
 }
 
 KEngine::KEngine(graphics::IRenderer* renderer) : m_window(800, 600) {
@@ -25,8 +25,6 @@ int KEngine::main() {
 		if (m_window.update() != 0) {
 			break;
 		}
-
-		logger::printf(LogType::DEBUG, "(%u, %u)\n", m_window.m_width, m_window.m_height);
 
 		if (input::input::isKey(input::InputKey::KEY_SPACE)) {
 			logger::print(LogType::DEBUG, "space\n");

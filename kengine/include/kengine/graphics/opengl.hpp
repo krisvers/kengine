@@ -6,17 +6,8 @@
 
 namespace kengine::graphics {
 
-struct RendererOpenGLBackend;
-
-class RendererOpenGL : public IRenderer {
-public:
-	virtual void init();
-	virtual void render();
-	virtual void destroy();
-
-private:
-	struct RendererOpenGLBackend* m_backend;
-};
+IRenderer* createOpenGLRenderer();
+void destroyOpenGLRenderer(IRenderer* renderer);
 
 } // namespace kengine::graphics
 

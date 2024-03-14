@@ -5,12 +5,9 @@
 
 namespace kengine::graphics {
 
-class IRenderable {
+class Renderable {
 public:
 	Material albedo;
-
-private:
-	void* internal;
 };
 
 } // namespace kegnine::graphics

@@ -3,6 +3,7 @@
 
 #include <kengine/types.hpp>
 #include <kengine/graphics/renderable.hpp>
+#include <kengine/graphics/mesh.hpp>
 
 #include <vector>
 
@@ -14,8 +15,10 @@ public:
 	virtual void render() = 0;
 	virtual void destroy() = 0;
 
-private:
-	std::vector<IRenderable*> m_renderables;
+	virtual Renderable* createRenderable() = 0;
+	virtual void uploadRenderableMesh(Renderable* renderable, Mesh* mesh) = 0;
+	virtual Mesh downloadRenderableMesh(Renderable* renderable) = 0;
+	virtual void destroyRenderable(Renderable* renderable) = 0;
 };
 
 } // namespace kengine::graphics
