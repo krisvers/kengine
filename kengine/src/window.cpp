@@ -66,11 +66,11 @@ Window::Window(u32 width, u32 height, const char* title) {
 }
 
 void Window::hide() {
-	
+	glfwHideWindow(INTERNAL);
 }
 
 void Window::show() {
-	
+	glfwShowWindow(INTERNAL);
 }
 
 int Window::update() {

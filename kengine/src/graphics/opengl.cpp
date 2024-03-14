@@ -1,11 +1,16 @@
 #include <kengine/graphics/opengl.hpp>
-#include <iostream>
+
 #include <glad/glad.h>
+
+#include <iostream>
+#include <vector>
 
 namespace kengine::graphics {
 
 struct RendererOpenGLBackend {
 	int init();
+	int draw();
+	void destroy();
 };
 
 void RendererOpenGL::init() {
@@ -30,6 +35,14 @@ int RendererOpenGLBackend::init() {
 	}
 
 	return 0;
+}
+
+int RendererOpenGLBackend::draw() {
+	
+}
+
+void RendererOpenGLBackend::destroy() {
+
 }
 
 } // namespace kengine::graphics
