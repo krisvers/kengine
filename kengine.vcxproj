@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="kengine\include\kengine\graphics\material.hpp" />
+    <ClInclude Include="kengine\include\kengine\graphics\mesh.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\opengl.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\renderable.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\renderer.hpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="kengine\include\kengine\kengine.hpp" />
     <ClInclude Include="kengine\include\kengine\logger.hpp" />
     <ClInclude Include="kengine\include\kengine\types.hpp" />
+    <ClInclude Include="kengine\include\kengine\util\vector.hpp" />
     <ClInclude Include="kengine\include\kengine\window.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -167,6 +169,7 @@
     <ClCompile Include="kengine\src\input\input.cpp" />
     <ClCompile Include="kengine\src\kengine.cpp" />
     <ClCompile Include="kengine\src\logger.cpp" />
+    <ClCompile Include="kengine\src\util\vector.cpp" />
     <ClCompile Include="kengine\src\window.cpp" />
     <ClCompile Include="lib\src\glad\glad.c" />
     <ClCompile Include="test\main.cpp" />

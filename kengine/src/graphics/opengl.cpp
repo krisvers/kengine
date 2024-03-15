@@ -19,11 +19,11 @@ public:
 		glGenVertexArrays(1, &m_vertexArray);
 		glBindVertexArray(m_vertexArray);
 
-		constexpr GLsizei stride = util::Vector<f32, 3>::size() * 3 + util::Vector<f32, 2>::size();
-		glVertexAttribPointer(0, util::Vector<f32, 3>::size(), GL_FALSE, stride, nullptr);
-		glVertexAttribPointer(1, util::Vector<f32, 3>::size(), GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size()));
-		glVertexAttribPointer(2, util::Vector<f32, 3>::size(), GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 2));
-		glVertexAttribPointer(3, util::Vector<f32, 2>::size(), GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 3));
+		constexpr GLsizei stride = static_cast<GLsizei>(util::Vector<f32, 3>::size() * 3 + util::Vector<f32, 2>::size());
+		glVertexAttribPointer(0, static_cast<GLsizei>(util::Vector<f32, 3>::count()), GL_FLOAT, GL_FALSE, stride, nullptr);
+		glVertexAttribPointer(1, static_cast<GLsizei>(util::Vector<f32, 3>::count()), GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size()));
+		glVertexAttribPointer(2, static_cast<GLsizei>(util::Vector<f32, 3>::count()), GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 2));
+		glVertexAttribPointer(3, static_cast<GLsizei>(util::Vector<f32, 2>::count()), GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 3));
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
@@ -84,14 +84,14 @@ Renderable* RendererOpenGL::createRenderable() {
 void RendererOpenGL::uploadRenderableMesh(Renderable* renderable, Mesh* mesh) {
 	RenderableOpenGL* r = reinterpret_cast<RenderableOpenGL*>(renderable);
 	glBindVertexArray(r->m_vertexArray);
-	glBindBuffer(GL_VERTEX_ARRAY, r->m_vertexBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, r->m_vertexBuffer);
 
 	std::vector<f32> vertices(Vertex::count() * mesh->vertices.size());
 	for (usize i = 0; i < mesh->vertices.size(); ++i) {
 		vertices[i * Vertex::size() + 0] = mesh->vertices[i].position.x();
 	}
 
-	glBufferData(GL_VERTEX_ARRAY, sizeof(f32) * vertices.size(), vertices.data(), GL_ARRAY_BUFFER);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(f32) * vertices.size(), vertices.data(), GL_ARRAY_BUFFER);
 }
 
 Mesh RendererOpenGL::downloadRenderableMesh(Renderable* renderable) {
