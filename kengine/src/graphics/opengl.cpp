@@ -88,9 +88,10 @@ void RendererOpenGL::uploadRenderableMesh(Renderable* renderable, Mesh* mesh) {
 
 	std::vector<f32> vertices(Vertex::count() * mesh->vertices.size());
 	for (usize i = 0; i < mesh->vertices.size(); ++i) {
-		
+		vertices[i * Vertex::size() + 0] = mesh->vertices[i].position.x();
 	}
-	glBufferData(GL_VERTEX_ARRAY, Vertex::size() * mesh->vertices.size(), vertices.data(), GL_ARRAY_BUFFER);
+
+	glBufferData(GL_VERTEX_ARRAY, sizeof(f32) * vertices.size(), vertices.data(), GL_ARRAY_BUFFER);
 }
 
 Mesh RendererOpenGL::downloadRenderableMesh(Renderable* renderable) {
