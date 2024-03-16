@@ -19,6 +19,20 @@ int KEngine::main() {
 	m_window.show();
 	m_renderer->init();
 
+	graphics::Mesh mesh = graphics::Mesh();
+	mesh.vertices.push_back(
+		graphics::Vertex(util::Vector<f32, 3>{ -1, -1, 0 })
+	);
+	mesh.vertices.push_back(
+		graphics::Vertex(util::Vector<f32, 3>{ 1, -1, 0 })
+	);
+	mesh.vertices.push_back(
+		graphics::Vertex(util::Vector<f32, 3>{ 0, 1, 0 })
+	);
+
+	graphics::Renderable* renderable = m_renderer->createRenderable();
+	m_renderer->uploadRenderableMesh(renderable, &mesh);
+
 	while (!m_window.m_closed) {
 		m_renderer->render();
 		m_window.swapBuffers();
@@ -30,6 +44,8 @@ int KEngine::main() {
 			logger::print(LogType::DEBUG, "space\n");
 		}
 	}
+
+	m_renderer->destroyRenderable(renderable);
 	m_renderer->destroy();
 	return 0;
 }

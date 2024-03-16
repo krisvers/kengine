@@ -4,14 +4,16 @@
 #include <kengine/types.hpp>
 
 #include <array>
+#include <initializer_list>
 
 namespace kengine::util {
 
 template<typename T, usize Count>
 class Vector {
 public:
-	Vector(std::array<T, Count> values) : m_array(values) {}
-	Vector(std::initializer_list<T> list) : m_array(list) {}
+	Vector(const std::array<T, Count>& values) : m_array(values) {}
+	Vector(const std::initializer_list<T>& list) { std::copy(list.begin(), list.end(), m_array.data()); }
+	Vector(const Vector& vector) : m_array(vector.m_array) {}
 
 	Vector operator+(Vector const& vector);
 	Vector operator-(Vector const& vector);
@@ -21,12 +23,18 @@ public:
 	
 	bool operator==(Vector const& vector);
 
+	T& operator[](usize index) { return m_array[index]; }
+
 	const T& x() const { return m_array[0]; };
 	const T& y() const { return m_array[1]; };
 	const T& z() const { return m_array[2]; };
 	const T& w() const { return m_array[3]; };
 
 	std::array<T, Count> array() { std::array<T, Count> arr = m_array; return arr; }
+	auto begin() { return m_array.begin(); }
+	auto end() { return m_array.end(); }
+	T* data() { return m_array.data(); }
+
 	static constexpr kengine::usize size() { return sizeof(T) * Count; }
 	static constexpr kengine::usize count() { return Count; }
 
