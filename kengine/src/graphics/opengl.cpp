@@ -21,6 +21,7 @@ public:
 		glGenVertexArrays(1, &m_vertexArray);
 
 		m_verticesCount = 0;
+		modelMatrix = util::Matrix<4, 4>().identity();
 	}
 
 	~RenderableOpenGL() {
@@ -48,6 +49,7 @@ public:
 
 	std::vector<RenderableOpenGL*> m_renderables;
 	GLuint m_shaderProgram;
+	GLint m_shaderMVPUniform;
 };
 
 IRenderer* createOpenGLRenderer() {
@@ -72,8 +74,10 @@ void RendererOpenGL::init() {
 
 		layout (location = 0) out vec3 v_pos;
 
+		uniform mat4 mvp;
+
 		void main() {
-			gl_Position = vec4(in_pos, 1.0);
+			gl_Position = mvp * vec4(in_pos, 1.0);
 			v_pos = in_pos;
 		}
 	)";
@@ -132,16 +136,22 @@ void RendererOpenGL::init() {
 	glDeleteShader(fshader);
 
 	glUseProgram(m_shaderProgram);
+	m_shaderMVPUniform = glGetUniformLocation(m_shaderProgram, "mvp");
 }
 
 void RendererOpenGL::render() {
+	glClear(GL_COLOR_BUFFER_BIT);
 	for (RenderableOpenGL*& renderable : m_renderables) {
+		glUniformMatrix4fv(m_shaderMVPUniform, 1, GL_FALSE, renderable->modelMatrix.data());
 		renderable->draw();
 	}
 }
 
 void RendererOpenGL::destroy() {
-	std::cout << "opengl destroy\n";
+	for (RenderableOpenGL*& renderable : m_renderables) {
+		delete renderable;
+	}
+	glDeleteProgram(m_shaderProgram);
 }
 
 Renderable* RendererOpenGL::createRenderable() {

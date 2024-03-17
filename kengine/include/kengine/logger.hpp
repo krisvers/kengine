@@ -3,6 +3,8 @@
 
 #include <kengine/types.hpp>
 
+#include <iostream>
+
 namespace kengine {
 
 enum class LogType {

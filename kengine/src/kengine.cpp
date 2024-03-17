@@ -3,51 +3,61 @@
 #include <kengine/logger.hpp>
 #include <kengine/input/input.hpp>
 #include <kengine/graphics/opengl.hpp>
+#include <kengine/util/time.hpp>
 
 namespace kengine {
 
 KEngine::KEngine() : m_window(800, 600) {
-	m_renderer = graphics::createOpenGLRenderer();
+	renderer = graphics::createOpenGLRenderer();
 }
 
-KEngine::KEngine(graphics::IRenderer* renderer) : m_window(800, 600) {
-	m_renderer = renderer;
+KEngine::KEngine(graphics::IRenderer* rend) : m_window(800, 600) {
+	renderer = rend;
+}
+
+void KEngine::setGame(GameInitFunc init, GameUpdateFunc update, GameDestroyFunc destroy) {
+	m_gameInit = init;
+	m_gameUpdate = update;
+	m_gameDestroy = destroy;
 }
 
 int KEngine::main() {
-	logger::printf(LogType::WARNING, "hello, world %s %f\n", "102", 69.420f);
+	KEngine::window = &m_window;
+	util::time::init();
 	m_window.show();
-	m_renderer->init();
+	renderer->init();
+	input::input::init();
 
-	graphics::Mesh mesh = graphics::Mesh();
-	mesh.vertices.push_back(
-		graphics::Vertex(util::Vector<f32, 3>{ -1, -1, 0 })
-	);
-	mesh.vertices.push_back(
-		graphics::Vertex(util::Vector<f32, 3>{ 1, -1, 0 })
-	);
-	mesh.vertices.push_back(
-		graphics::Vertex(util::Vector<f32, 3>{ 0, 1, 0 })
-	);
+	if (m_gameInit != nullptr && m_gameInit() != 0) {
+		return -1;
+	} else {
+		while (!m_window.m_closed) {
+			renderer->render();
+			m_window.swapBuffers();
+			if (m_window.update() != 0) {
+				break;
+			}
 
-	graphics::Renderable* renderable = m_renderer->createRenderable();
-	m_renderer->uploadRenderableMesh(renderable, &mesh);
+			input::input::update();
 
-	while (!m_window.m_closed) {
-		m_renderer->render();
-		m_window.swapBuffers();
-		if (m_window.update() != 0) {
-			break;
-		}
-
-		if (input::input::isKey(input::InputKey::KEY_SPACE)) {
-			logger::print(LogType::DEBUG, "space\n");
+			if (m_gameUpdate != nullptr && m_gameUpdate() != 0) {
+				break;
+			}
 		}
 	}
 
-	m_renderer->destroyRenderable(renderable);
-	m_renderer->destroy();
+	if (m_gameDestroy != nullptr) {
+		m_gameDestroy();
+	}
+
+	input::input::destroy();
+
+	renderer->destroy();
 	return 0;
+}
+
+Window* KEngine::getWindow() {
+	return KEngine::window;
 }
 
 } // namespace kengine

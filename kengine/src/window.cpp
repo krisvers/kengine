@@ -2,7 +2,17 @@
 #include <kengine/logger.hpp>
 #include <kengine/input/input.hpp>
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#define GLFW_INCLUDE_NONE
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <GLFW/glfw3native.h>
+
+#ifdef ERROR
+#undef ERROR
+#endif
 
 #include <exception>
 #include <stdexcept>
@@ -85,6 +95,10 @@ int Window::update() {
 
 void Window::swapBuffers() {
 	glfwSwapBuffers(INTERNAL);
+}
+
+void* Window::getHandleWin32() {
+	return glfwGetWin32Window(INTERNAL);
 }
 
 void Window::inputPipeKey(input::InputKey key, bool value) {

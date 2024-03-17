@@ -23,6 +23,8 @@ public:
 	int update();
 	void swapBuffers();
 
+	void* getHandleWin32();
+
 	friend struct WindowCallbacks;
 
 private:
