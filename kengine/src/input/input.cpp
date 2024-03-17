@@ -2,9 +2,16 @@
 #include <kengine/input/gamepad.hpp>
 #include <kengine/kengine.hpp>
 #include <kengine/logger.hpp>
+#include <kengine/util/time.hpp>
+
+#include <Windows.h>
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
+#include <Dbt.h>
+#include <Hidclass.h>
+
+#include <atlstr.h>
 
 #include <exception>
 #include <functional>
@@ -29,6 +36,16 @@ public:
 	virtual util::Vector<f32, 2> getStickDeadzone(GamepadStick stick);
 	virtual void setStickDeadzone(GamepadStick stick, util::Vector<f32, 2> deadzone);
 
+	void disconnect() {
+		logger::printf(LogType::VERBOSE, "Controller \"%s\" disconnected %zu\n", deviceName, m_controller);
+		connected = false;
+		zero();
+		m_device->Unacquire();
+		m_device->Release();
+		m_device = nullptr;
+		m_deviceGUID = GUID();
+	}
+
 	GamepadDirectInput() {
 		m_stickDeadzones[0] = { 0.10f, 0.10f };
 		m_stickDeadzones[1] = { 0.10f, 0.10f };
@@ -42,6 +59,7 @@ private:
 	util::Vector<f32, 2> m_stickDeadzones[2];
 
 	IDirectInputDevice8* m_device;
+	GUID m_deviceGUID;
 
 	void zero() {
 		for (usize i = 0; i < 16; ++i) {
@@ -63,29 +81,24 @@ void input::init() {
 		input::prevKeys[i] = false;
 	}
 
-	HRESULT result = DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&g_directInput, NULL);
+	HRESULT result = DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&g_directInput, nullptr);
 	if (FAILED(result)) {
 		throw std::runtime_error("Failed to create DirectInput8");
 	}
 
 	g_directInput->EnumDevices(DI8DEVCLASS_GAMECTRL, [](LPCDIDEVICEINSTANCE dev, LPVOID ref) -> BOOL {
-		GamepadDirectInput* gamepad = new GamepadDirectInput();
-		gamepad->m_controller = static_cast<u32>(input::gamepads.size());
-		input::gamepads.push_back(gamepad);
-
-		logger::printf(LogType::DEBUG, "Found gamepad: %S %S\n", dev->tszProductName, dev->tszInstanceName);
-
-		HRESULT result = g_directInput->CreateDevice(dev->guidInstance, &gamepad->m_device, NULL);
+		IDirectInputDevice8* device;
+		HRESULT result = g_directInput->CreateDevice(dev->guidInstance, &device, nullptr);
 		if (FAILED(result)) {
 			throw std::runtime_error("Failed to create DirectInput device");
 		}
 
-		result = gamepad->m_device->SetDataFormat(&c_dfDIJoystick2);
+		result = device->SetDataFormat(&c_dfDIJoystick2);
 		if (FAILED(result)) {
 			throw std::runtime_error("Failed to set DirectInput device data format");
 		}
 
-		result = gamepad->m_device->SetCooperativeLevel(static_cast<HWND>(kengine::KEngine::getWindow()->getHandleWin32()), DISCL_EXCLUSIVE | DISCL_FOREGROUND);
+		result = device->SetCooperativeLevel(static_cast<HWND>(kengine::KEngine::getWindow()->getHandleWin32()), DISCL_EXCLUSIVE | DISCL_FOREGROUND);
 		if (FAILED(result)) {
 			throw std::runtime_error("Failed to set DirectInput device cooperative level");
 		}
@@ -97,19 +110,30 @@ void input::init() {
 		dipdw.diph.dwHow = DIPH_DEVICE;
 		dipdw.dwData = 1000;
 		
-		result = gamepad->m_device->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph);
+		result = device->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph);
 		if (FAILED(result)) {
 			throw std::runtime_error("Failed to set DirectInput device buffer size");
 		}
 
-		result = gamepad->m_device->Acquire();
+		result = device->Acquire();
 		if (FAILED(result)) {
-			throw std::runtime_error("Failed to acquire DirectInput device");
+			device->Release();
+			return TRUE;
 		}
 
+		GamepadDirectInput* gamepad = new GamepadDirectInput();
+		gamepad->m_device = device;
+		gamepad->m_controller = static_cast<u32>(input::gamepads.size());
+		gamepad->m_deviceGUID = dev->guidInstance;
 		gamepad->connected = true;
+
+		CW2A cstring(dev->tszInstanceName, CP_UTF8);
+		memcpy(const_cast<void*>(reinterpret_cast<const void*>(gamepad->deviceName)), cstring.m_psz, 32);
+
+		input::gamepads.push_back(gamepad);
+		logger::printf(LogType::VERBOSE, "Found gamepad: %S\n", dev->tszProductName);
 		return TRUE;
-	}, NULL, DIEDFL_ATTACHEDONLY);
+	}, nullptr, DIEDFL_ATTACHEDONLY);
 }
 
 void input::update() {
@@ -119,19 +143,23 @@ void input::update() {
 
 	for (usize i = 0; i < input::gamepads.size(); ++i) {
 		GamepadDirectInput* gamepad = static_cast<GamepadDirectInput*>(input::gamepads[i]);
+		if (!gamepad->connected) {
+			continue;
+		}
 
 		DIJOYSTATE2 state;
 		HRESULT result = gamepad->m_device->Poll();
 		if (FAILED(result)) {
 			result = gamepad->m_device->Acquire();
-			if (result == DIERR_INPUTLOST) {
-				gamepad->connected = false;
-				gamepad->zero();
+			if (FAILED(result)) {
+				gamepad->disconnect();
+				continue;
 			}
 		}
 
 		result = gamepad->m_device->GetDeviceState(sizeof(DIJOYSTATE2), &state);
 		if (FAILED(result)) {
+			gamepad->disconnect();
 			continue;
 		}
 
@@ -185,6 +213,10 @@ void input::update() {
 void input::destroy() {
 	for (usize i = 0; i < input::gamepads.size(); ++i) {
 		GamepadDirectInput* gamepad = static_cast<GamepadDirectInput*>(input::gamepads[i]);
+		if (!gamepad->connected) {
+			continue;
+		}
+
 		gamepad->m_device->Unacquire();
 		gamepad->m_device->Release();
 		delete input::gamepads[i];

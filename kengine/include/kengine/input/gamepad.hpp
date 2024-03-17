@@ -44,6 +44,7 @@ enum class GamepadStick {
 class Gamepad {
 public:
 	bool connected = false;
+	const char deviceName[32] = "Unknown";
 
 	virtual bool isButton(GamepadButton button) = 0;
 	virtual bool isButtonDown(GamepadButton button) = 0;

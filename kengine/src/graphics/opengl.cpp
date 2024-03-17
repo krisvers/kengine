@@ -101,7 +101,7 @@ void RendererOpenGL::init() {
 	glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
 	if (success == GL_FALSE) {
 		char msg[512];
-		glGetShaderInfoLog(vshader, 512, NULL, msg);
+		glGetShaderInfoLog(vshader, 512, nullptr, msg);
 		logger::printf(LogType::ERROR, "GLSL vertex shader compilation failure: %s\n", msg);
 		throw std::runtime_error("GLSL vertex shader compilation failure");
 	}
@@ -113,7 +113,7 @@ void RendererOpenGL::init() {
 	glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
 	if (success == GL_FALSE) {
 		char msg[512];
-		glGetShaderInfoLog(fshader, 512, NULL, msg);
+		glGetShaderInfoLog(fshader, 512, nullptr, msg);
 		logger::printf(LogType::ERROR, "GLSL fragment shader compilation failure: %s\n", msg);
 		throw std::runtime_error("GLSL fragment shader compilation failure");
 	}
@@ -127,7 +127,7 @@ void RendererOpenGL::init() {
 	glGetProgramiv(m_shaderProgram, GL_LINK_STATUS, &success);
 	if (success == GL_FALSE) {
 		char msg[512];
-		glGetProgramInfoLog(m_shaderProgram, 512, NULL, msg);
+		glGetProgramInfoLog(m_shaderProgram, 512, nullptr, msg);
 		logger::printf(LogType::ERROR, "GLSL shader program linker failure: %s\n", msg);
 		throw std::runtime_error("GLSL shader program linker failure");
 	}

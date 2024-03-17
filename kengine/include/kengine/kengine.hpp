@@ -4,11 +4,12 @@
 #include <kengine/graphics/renderer.hpp>
 #include <kengine/types.hpp>
 #include <kengine/window.hpp>
+#include <kengine/util/time.hpp>
 
 namespace kengine {
 
 using GameInitFunc = int (*)();
-using GameUpdateFunc = int (*)();
+using GameUpdateFunc = int (*)(f32);
 using GameDestroyFunc = void (*)();
 
 class KEngine {
@@ -30,6 +31,8 @@ private:
 	GameInitFunc m_gameInit;
 	GameUpdateFunc m_gameUpdate;
 	GameDestroyFunc m_gameDestroy;
+
+	util::Timer m_timer;
 };
 
 } // namespace kengine

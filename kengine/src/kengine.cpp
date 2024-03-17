@@ -32,6 +32,8 @@ int KEngine::main() {
 		return -1;
 	} else {
 		while (!m_window.m_closed) {
+			m_timer.start();
+
 			renderer->render();
 			m_window.swapBuffers();
 			if (m_window.update() != 0) {
@@ -40,7 +42,9 @@ int KEngine::main() {
 
 			input::input::update();
 
-			if (m_gameUpdate != nullptr && m_gameUpdate() != 0) {
+			m_timer.end();
+
+			if (m_gameUpdate != nullptr && m_gameUpdate(m_timer.deltaTime) != 0) {
 				break;
 			}
 		}

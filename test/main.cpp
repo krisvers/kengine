@@ -76,7 +76,7 @@ struct Game {
 		return 0;
 	}
 
-	static int update() {
+	static int update(f32 deltaTime) {
 		util::Vector<f32, 3> movement = {0,0,0};
 		if (input::input::isKey(input::InputKey::KEY_W)) {
 			movement[1] += 1;
@@ -152,9 +152,18 @@ struct Game {
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_RIGHT_STICK)) {
 				logger::print(LogType::DEBUG, "Right stick pressed\n");
 			}
+
+			if (!gamepad->connected) {
+				gamepad = nullptr;
+			}
+		} else {
+			gamepad = input::input::getGamepad();
+			if (gamepad != nullptr) {
+				logger::printf(LogType::DEBUG, "Gamepad \"%s\" chosen for input\n", gamepad->deviceName);
+			}
 		}
 
-		movement.normalize() /= 100;
+		movement.normalize() *= deltaTime;
 
 		player.transform.position += movement;
 
