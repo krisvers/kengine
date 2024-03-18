@@ -1,6 +1,8 @@
 CXX=clang++
 CXXFLAGS=-I../kengine/include -L../build -L../lib/mac/universal -std=c++17
 
+UNAME=$(shell uname -s)
+
 .PHONY: build kengine-static
 
 build: kengine-static
@@ -10,4 +12,11 @@ clean:
 	cd .. && make clean
 
 kengine-static:
-	cd .. && make obj && make link-static
+	cd .. && make obj
+    ifeq ($(UNAME_S),Linux)
+		cd .. && make obj-linux
+    endif
+    ifeq ($(UNAME_S),Darwin)
+		cd .. && make obj-mac
+    endif
+	cd .. && make link-static

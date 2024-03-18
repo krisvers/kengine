@@ -3,6 +3,9 @@
 
 #include <kengine/types.hpp>
 
+#define KENGINE_UTIL_MATRIX_NO_IMPL
+#include <kengine/util/matrix.hpp>
+
 #include <array>
 #include <initializer_list>
 #include <ostream>
@@ -10,10 +13,8 @@
 
 namespace kengine::util {
 
-#ifndef KRISVERS_KENGINE_UTIL_MATRIX_HPP
 template<usize Width, usize Height>
 class Matrix;
-#endif
 
 template<typename T, usize Count>
 class Vector {

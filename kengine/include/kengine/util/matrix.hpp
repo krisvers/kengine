@@ -9,19 +9,49 @@
 
 namespace kengine::util {
 
-#ifndef KRISVERS_KENGINE_UTIL_VECTOR_HPP
 template<typename T, usize Count>
 class Vector;
-#endif
 
 template<usize Width, usize Height>
 class Matrix {
 public:
+#ifdef KENGINE_UTIL_MATRIX_NO_IMPL
 	Matrix(const std::array<f32, Width * Height>& values) : m_array(values) {}
 	Matrix(const std::initializer_list<f32>& list) { std::copy(list.begin(), list.end(), m_array.data()); }
 	Matrix(const Matrix& matrix) : m_array(matrix.m_array) {}
 	Matrix() : m_array() {}
 
+	Matrix& zero();
+	Matrix& identity();
+
+	Matrix& translate(f32 x, f32 y, f32 z);
+	Matrix& translate(const Vector<f32, 3>& vector);
+	Matrix& translateInPlace(f32 x, f32 y, f32 z);
+	Matrix& translateInPlace(const Vector<f32, 3>& vector);
+
+	Matrix& rotate(f32 x, f32 y, f32 z);
+	Matrix& rotate(const Vector<f32, 3>& vector);
+
+	Matrix& scale(f32 x, f32 y, f32 z);
+	Matrix& scale(const Vector<f32, 3>& vector);
+
+	Matrix& perspective(f32 fov, f32 aspect, f32 near, f32 far);
+	Matrix& orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far);
+
+	Matrix operator+(const Matrix& matrix);
+	Matrix& operator+=(const Matrix& matrix);
+	Matrix operator-(const Matrix& matrix);
+	Matrix& operator-=(const Matrix& matrix);
+	Matrix operator*(const Matrix& matrix);
+	Matrix& operator*=(const Matrix& matrix);
+	Matrix& operator=(const Matrix& matrix);
+	Vector<f32, Width> operator[](usize row);
+	//const Vector<f32, Width> operator[](usize row) const;
+
+	constexpr f32* data() noexcept;
+#endif
+
+#ifndef KENGINE_UTIL_MATRIX_NO_IMPL
 	Matrix& zero() {
 		for (usize i = 0; i < Width * Height; i++) {
 			m_array[i] = 0;
@@ -275,7 +305,20 @@ public:
 		return v;
 	}
 
+	const Vector<f32, Width> operator[](usize row) const {
+		if (row > Height) {
+			throw std::out_of_range("Row index is out of range of Matrix bounds");
+		}
+
+		Vector<f32, Width> v;
+		for (usize i = 0; i < Width; ++i) {
+			v[i] = m_array[i + row * Width];
+		}
+		return const_cast<const Vector<f32, Width>>(v);
+	}
+
 	constexpr f32* data() noexcept { return m_array.data(); }
+#endif
 
 private:
 	std::array<f32, Width * Height> m_array;
