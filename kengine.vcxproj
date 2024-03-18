@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="kengine\include\kengine\camera.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\material.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\mesh.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\opengl.hpp" />
@@ -168,8 +169,9 @@
     <ClInclude Include="kengine\include\kengine\util\time.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="kengine\src\camera.cpp" />
     <ClCompile Include="kengine\src\graphics\opengl.cpp" />
-    <ClCompile Include="kengine\src\input\input.cpp" />
+    <ClCompile Include="kengine\src\input\input_win32.cpp" />
     <ClCompile Include="kengine\src\kengine.cpp" />
     <ClCompile Include="kengine\src\logger.cpp" />
     <ClCompile Include="kengine\src\window.cpp" />

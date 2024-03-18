@@ -166,8 +166,8 @@ public:
 	}
 
 	Matrix& perspective(f32 fov, f32 aspect, f32 near, f32 far) {
+		zero();
 		const f32 a = 1 / std::tan(fov / 2);
-
 		m_array[0] = a / aspect;
 		m_array[Width + 1] = a;
 		m_array[Width * 2 + 2] = -((far + near) / (far - near));
@@ -198,6 +198,16 @@ public:
 		return n;
 	}
 
+	Matrix& operator+=(const Matrix& matrix) {
+		for (usize r = 0; r < Height; ++r) {
+			for (usize c = 0; c < Width; ++c) {
+				m_array[c + r * Width] += matrix.m_array[c + r * Width];
+			}
+		}
+
+		return *this;
+	}
+
 	Matrix operator-(const Matrix& matrix) {
 		Matrix n = Matrix();
 		for (usize r = 0; r < Height; ++r) {
@@ -209,17 +219,40 @@ public:
 		return n;
 	}
 
+	Matrix& operator-=(const Matrix& matrix) {
+		for (usize r = 0; r < Height; ++r) {
+			for (usize c = 0; c < Width; ++c) {
+				m_array[c + r * Width] -= matrix.m_array[c + r * Width];
+			}
+		}
+
+		return *this;
+	}
+
 	Matrix operator*(const Matrix& matrix) {
-		Matrix n = Matrix();
-		for (usize c = 0; c < Width; ++c) {
-			for (usize r = 0; r < Height; ++r) {
+		Matrix n = Matrix().zero();
+		for (usize c = 0; c < Height; ++c) {
+			for (usize r = 0; r < Width; ++r) {
 				for (usize k = 0; k < Width; ++k) {
-					n.m_array[c + r * Width] += m_array[k + r * Width] * matrix.m_array[c + k * Width];
+					n.m_array[r + c * Width] += m_array[r + k * Width] * matrix.m_array[k + c * Width];
 				}
 			}
 		}
 
 		return n;
+	}
+
+	Matrix& operator*=(const Matrix& matrix) {
+		Matrix n = Matrix().zero();
+		for (usize c = 0; c < Width; ++c) {
+			for (usize r = 0; r < Height; ++r) {
+				for (usize k = 0; k < Width; ++k) {
+					n.m_array[r + c * Width] += m_array[r + k * Width] * matrix.m_array[k + c * Width];
+				}
+			}
+		}
+
+		return *this = n;
 	}
 
 	Matrix& operator=(const Matrix& matrix) {

@@ -59,14 +59,18 @@ struct Game {
 	inline static input::Gamepad* gamepad;
 
 	static int init() {
+		engine.camera.isOrthographic = false;
+		engine.camera.position[2] = 0;
+
 		player.init();
 		player.transform.scale = 0.05f;
+		player.transform.position[2] = -1;
 
 		graphics::Mesh mesh = graphics::Mesh();
 		mesh.vertices = {
-			util::Vector<f32, 3>{ -1, -1, 0 },
-			util::Vector<f32, 3>{  1, -1, 0 },
-			util::Vector<f32, 3>{ -1,  1, 0 },
+			{ util::Vector<f32, 3>{ -1, -1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 1, 1, 0 }  },
+			{ util::Vector<f32, 3>{  1, -1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 1, 0, 1 }  },
+			{ util::Vector<f32, 3>{ -1,  1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 0, 1, 1 }  },
 		};
 
 		player.mesh(mesh);
@@ -89,6 +93,19 @@ struct Game {
 		}
 		if (input::input::isKey(input::InputKey::KEY_A)) {
 			movement[0] -= 1;
+		}
+
+		if (input::input::isKey(input::InputKey::KEY_UP)) {
+			engine.camera.position[2] += deltaTime;
+		}
+		if (input::input::isKey(input::InputKey::KEY_DOWN)) {
+			engine.camera.position[2] -= deltaTime;
+		}
+		if (input::input::isKey(input::InputKey::KEY_RIGHT)) {
+			engine.camera.position[0] += deltaTime;
+		}
+		if (input::input::isKey(input::InputKey::KEY_LEFT)) {
+			engine.camera.position[0] -= deltaTime;
 		}
 
 		if (input::input::isKey(input::InputKey::KEY_ESCAPE)) {

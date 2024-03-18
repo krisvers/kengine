@@ -38,7 +38,7 @@ public:
 
 class RendererOpenGL : public IRenderer {
 public:
-	virtual void init();
+	virtual void init(Window& window, Camera& camera);
 	virtual void render();
 	virtual void destroy();
 
@@ -47,9 +47,21 @@ public:
 	virtual Mesh downloadRenderableMesh(Renderable* renderable);
 	virtual void destroyRenderable(Renderable* renderable);
 
+	void createShaderGL(GLuint shader, const char* source);
+	GLuint createShaderProgramGL(std::vector<GLuint> shaders);
+
+	Camera* m_camera;
+	Window* m_window;
+
 	std::vector<RenderableOpenGL*> m_renderables;
-	GLuint m_shaderProgram;
-	GLint m_shaderMVPUniform;
+	GLuint m_lightingPassProgram;
+
+	GLuint m_geometryPassProgram;
+	GLuint m_geometryPassTexture;
+	GLuint m_geometryPassNormalTexture;
+	GLuint m_geometryPassColorTexture;
+	GLuint m_geometryPassFramebuffer;
+	GLint m_geometryPassMVPUniform;
 };
 
 IRenderer* createOpenGLRenderer() {
@@ -60,98 +72,185 @@ void destroyOpenGLRenderer(IRenderer* renderer) {
 	delete static_cast<RendererOpenGL*>(renderer);
 }
 
-void RendererOpenGL::init() {
+void RendererOpenGL::init(Window& window, Camera& camera) {
 	if (!gladLoadGL()) {
 		throw std::runtime_error("Failed to initialize OpenGL context");
 	}
 
-	const char* vshaderSource = R"(
+	m_window = &window;
+	m_camera = &camera;
+
+	const char* vgeometryShaderSource = R"(
 		#version 410
 		layout (location = 0) in vec3 in_pos;
 		layout (location = 1) in vec3 in_normal;
 		layout (location = 2) in vec3 in_color;
 		layout (location = 3) in vec2 in_texcoord;
-
+		
 		layout (location = 0) out vec3 v_pos;
+		layout (location = 1) out vec3 v_normal;
+		layout (location = 2) out vec3 v_color;
 
 		uniform mat4 mvp;
 
 		void main() {
 			gl_Position = mvp * vec4(in_pos, 1.0);
-			v_pos = in_pos;
+			v_pos = gl_Position.xyz;
+			v_normal = in_normal;
+			v_color = in_color;
 		}
 	)";
 
-	const char* fshaderSource = R"(
+	const char* fgeometryShaderSource = R"(
 		#version 410
+		
 		layout (location = 0) in vec3 v_pos;
-		layout (location = 0) out vec4 out_color;
+		layout (location = 1) in vec3 v_normal;
+		layout (location = 2) in vec3 v_color;
+		
+		layout (location = 0) out vec3 out_pos;
+		layout (location = 1) out vec3 out_normal;
+		layout (location = 2) out vec3 out_color;
+
 		void main() {
-			out_color = vec4((v_pos + 1.0) / 2.0, 1.0);
+			out_pos = v_pos;
+			out_normal = v_normal;
+			out_color = v_color;
 		}
 	)";
 
 	GLuint vshader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fshader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	glShaderSource(vshader, 1, &vshaderSource, nullptr);
-	glCompileShader(vshader);
+	createShaderGL(vshader, vgeometryShaderSource);
+	createShaderGL(fshader, fgeometryShaderSource);
 
-	GLint success = GL_TRUE;
-	glGetShaderiv(vshader, GL_COMPILE_STATUS, &success);
-	if (success == GL_FALSE) {
-		char msg[512];
-		glGetShaderInfoLog(vshader, 512, nullptr, msg);
-		logger::printf(LogType::ERROR, "GLSL vertex shader compilation failure: %s\n", msg);
-		throw std::runtime_error("GLSL vertex shader compilation failure");
-	}
-
-	glShaderSource(fshader, 1, &fshaderSource, nullptr);
-	glCompileShader(fshader);
-
-	success = GL_TRUE;
-	glGetShaderiv(fshader, GL_COMPILE_STATUS, &success);
-	if (success == GL_FALSE) {
-		char msg[512];
-		glGetShaderInfoLog(fshader, 512, nullptr, msg);
-		logger::printf(LogType::ERROR, "GLSL fragment shader compilation failure: %s\n", msg);
-		throw std::runtime_error("GLSL fragment shader compilation failure");
-	}
-
-	m_shaderProgram = glCreateProgram();
-	glAttachShader(m_shaderProgram, vshader);
-	glAttachShader(m_shaderProgram, fshader);
-	glLinkProgram(m_shaderProgram);
-
-	success = GL_TRUE;
-	glGetProgramiv(m_shaderProgram, GL_LINK_STATUS, &success);
-	if (success == GL_FALSE) {
-		char msg[512];
-		glGetProgramInfoLog(m_shaderProgram, 512, nullptr, msg);
-		logger::printf(LogType::ERROR, "GLSL shader program linker failure: %s\n", msg);
-		throw std::runtime_error("GLSL shader program linker failure");
-	}
+	m_geometryPassProgram = createShaderProgramGL({ vshader, fshader });
 
 	glDeleteShader(vshader);
 	glDeleteShader(fshader);
 
-	glUseProgram(m_shaderProgram);
-	m_shaderMVPUniform = glGetUniformLocation(m_shaderProgram, "mvp");
+	const char* vlightingShaderSource = R"(
+		#version 410
+
+		const vec2 quadVertices[4] = vec2[](
+			vec2(-1.0, -1.0),
+			vec2(-1.0, 1.0),
+			vec2(1.0, -1.0),
+			vec2(1.0, 1.0)
+		);
+
+		layout (location = 0) out vec2 v_texcoord;
+
+		void main() {
+			gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
+			v_texcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
+		}
+	)";
+
+	const char* flightingShaderSource = R"(
+		#version 410
+
+		uniform sampler2D sampler_position;
+		uniform sampler2D sampler_normal;
+		uniform sampler2D sampler_color;
+
+		layout (location = 0) in vec2 v_texcoord;
+
+		layout (location = 0) out vec4 out_color;
+
+		void main() {
+			out_color = texture(sampler_color, v_texcoord);
+		}
+	)";
+
+	vshader = glCreateShader(GL_VERTEX_SHADER);
+	fshader = glCreateShader(GL_FRAGMENT_SHADER);
+
+	createShaderGL(vshader, vlightingShaderSource);
+	createShaderGL(fshader, flightingShaderSource);
+
+	m_lightingPassProgram = createShaderProgramGL({ vshader, fshader });
+
+	glDeleteShader(vshader);
+	glDeleteShader(fshader);
+
+	m_geometryPassMVPUniform = glGetUniformLocation(m_geometryPassProgram, "mvp");
+
+	glGenFramebuffers(1, &m_geometryPassFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_geometryPassFramebuffer);
+
+	glGenTextures(1, &m_geometryPassTexture);
+	glGenTextures(1, &m_geometryPassNormalTexture);
+	glGenTextures(1, &m_geometryPassColorTexture);
+
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_geometryPassTexture, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_geometryPassNormalTexture, 0);
+
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_geometryPassColorTexture, 0);
+
+	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+	glDrawBuffers(3, buffers);
 }
 
 void RendererOpenGL::render() {
-	glClear(GL_COLOR_BUFFER_BIT);
+	m_camera->calculateViewMatrix();
+	m_camera->calculateProjectionMatrix();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_geometryPassFramebuffer);
+	glClearColor(0, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(m_geometryPassProgram);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
+
+	util::Matrix<4, 4> vp = m_camera->getProjectionMatrix() * m_camera->getViewMatrix();
 	for (RenderableOpenGL*& renderable : m_renderables) {
-		glUniformMatrix4fv(m_shaderMVPUniform, 1, GL_FALSE, renderable->modelMatrix.data());
+		glUniformMatrix4fv(m_geometryPassMVPUniform, 1, GL_FALSE, (vp * renderable->modelMatrix).data());
 		renderable->draw();
 	}
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_geometryPassFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glUseProgram(m_lightingPassProgram);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_position"), 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_normal"), 1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_color"), 2);
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
 void RendererOpenGL::destroy() {
 	for (RenderableOpenGL*& renderable : m_renderables) {
 		delete renderable;
 	}
-	glDeleteProgram(m_shaderProgram);
+	glDeleteProgram(m_geometryPassProgram);
 }
 
 Renderable* RendererOpenGL::createRenderable() {
@@ -205,6 +304,39 @@ void RendererOpenGL::destroyRenderable(Renderable* renderable) {
 	RenderableOpenGL* r = static_cast<RenderableOpenGL*>(renderable);
 	m_renderables.erase(m_renderables.begin() + r->m_index);
 	delete renderable;
+}
+
+void RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
+	glShaderSource(shader, 1, &source, nullptr);
+	glCompileShader(shader);
+
+	GLint success = GL_TRUE;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+	if (success == GL_FALSE) {
+		char msg[512];
+		glGetShaderInfoLog(shader, 512, nullptr, msg);
+		logger::printf(LogType::ERROR, "GLSL vertex shader compilation failure: %s\n", msg);
+		throw std::runtime_error("GLSL vertex shader compilation failure");
+	}
+}
+
+GLuint RendererOpenGL::createShaderProgramGL(std::vector<GLuint> shaders) {
+	GLuint program = glCreateProgram();
+	for (GLuint shader : shaders) {
+		glAttachShader(program, shader);
+	}
+	glLinkProgram(program);
+
+	GLint success = GL_TRUE;
+	glGetProgramiv(program, GL_LINK_STATUS, &success);
+	if (success == GL_FALSE) {
+		char msg[512];
+		glGetProgramInfoLog(program, 512, nullptr, msg);
+		logger::printf(LogType::ERROR, "GLSL shader program linker failure: %s\n", msg);
+		throw std::runtime_error("GLSL shader program linker failure");
+	}
+
+	return program;
 }
 
 } // namespace kengine::graphics

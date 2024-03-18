@@ -4,6 +4,7 @@
 #include <kengine/graphics/renderer.hpp>
 #include <kengine/types.hpp>
 #include <kengine/window.hpp>
+#include <kengine/camera.hpp>
 #include <kengine/util/time.hpp>
 
 namespace kengine {
@@ -15,6 +16,7 @@ using GameDestroyFunc = void (*)();
 class KEngine {
 public:
 	graphics::IRenderer* renderer;
+	Camera camera;
 
 	KEngine();
 	KEngine(graphics::IRenderer* renderer);

@@ -22,16 +22,18 @@ void KEngine::setGame(GameInitFunc init, GameUpdateFunc update, GameDestroyFunc 
 }
 
 int KEngine::main() {
-	KEngine::window = &m_window;
 	util::time::init();
+
+	KEngine::window = &m_window;
 	m_window.show();
-	renderer->init();
+
+	renderer->init(m_window, camera);
 	input::input::init();
 
 	if (m_gameInit != nullptr && m_gameInit() != 0) {
 		return -1;
 	} else {
-		while (!m_window.m_closed) {
+		while (!m_window.closed) {
 			m_timer.start();
 
 			renderer->render();

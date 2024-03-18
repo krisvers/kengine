@@ -64,8 +64,8 @@ Window::Window(u32 width, u32 height, const char* title) {
 		throw std::runtime_error("Failed to create GLFW window");
 	}
 
-	m_width = width;
-	m_height = height;
+	this->width = width;
+	this->height = height;
 
 	m_internal = internal;
 	glfwSetWindowUserPointer(INTERNAL, this);
@@ -86,7 +86,7 @@ void Window::show() {
 
 int Window::update() {
 	glfwPollEvents();
-	if (m_closed) {
+	if (closed) {
 		return 1;
 	}
 
@@ -111,7 +111,7 @@ void WindowCallbacks::glfwErrorCallback(int err, const char* msg) {
 
 void WindowCallbacks::glfwWindowCloseCallback(GLFWwindow* window) {
 	Window* w = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
-	w->m_closed = true;
+	w->closed = true;
 }
 
 void WindowCallbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -121,8 +121,8 @@ void WindowCallbacks::glfwKeyCallback(GLFWwindow* window, int key, int scancode,
 
 void WindowCallbacks::glfwWindowSizeCallback(GLFWwindow* window, int width, int height) {
 	Window* w = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
-	w->m_width = width;
-	w->m_height = height;
+	w->width = width;
+	w->height = height;
 }
 
 }

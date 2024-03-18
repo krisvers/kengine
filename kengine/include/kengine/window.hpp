@@ -10,9 +10,9 @@ struct WindowCallbacks;
 
 class Window {
 public:
-	u32 m_width;
-	u32 m_height;
-	bool m_closed = false;
+	u32 width;
+	u32 height;
+	bool closed = false;
 
 	Window(u32 width, u32 height) : Window(width, height, "Window") {};
 	Window(u32 width, u32 height, const char* title);
