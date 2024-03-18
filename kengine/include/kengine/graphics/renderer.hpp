@@ -4,6 +4,7 @@
 #include <kengine/types.hpp>
 #include <kengine/graphics/renderable.hpp>
 #include <kengine/graphics/mesh.hpp>
+#include <kengine/graphics/postprocess.hpp>
 #include <kengine/window.hpp>
 #include <kengine/camera.hpp>
 
@@ -18,9 +19,12 @@ public:
 	virtual void destroy() = 0;
 
 	virtual Renderable* createRenderable() = 0;
-	virtual void uploadRenderableMesh(Renderable* renderable, Mesh* mesh) = 0;
-	virtual Mesh downloadRenderableMesh(Renderable* renderable) = 0;
+	virtual void renderableUploadMesh(Renderable* renderable, Mesh* mesh) = 0;
+	virtual Mesh renderableDownloadMesh(Renderable* renderable) = 0;
 	virtual void destroyRenderable(Renderable* renderable) = 0;
+
+	virtual PostProcess* createPostProcess(const char* source, ShaderMedium medium) = 0;
+	virtual void destroyPostProcess(PostProcess* postProcess) = 0;
 
 	Window* window;
 };

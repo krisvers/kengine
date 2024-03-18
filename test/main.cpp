@@ -1,6 +1,7 @@
 #include <kengine/kengine.hpp>
 #include <kengine/graphics/renderable.hpp>
 #include <kengine/graphics/mesh.hpp>
+#include <kengine/graphics/postprocess.hpp>
 #include <kengine/util/time.hpp>
 #include <kengine/input/input.hpp>
 #include <kengine/input/gamepad.hpp>
@@ -39,7 +40,7 @@ struct GameObject {
 	}
 
 	void mesh(graphics::Mesh& mesh) {
-		engine.renderer->uploadRenderableMesh(renderable, &mesh);
+		engine.renderer->renderableUploadMesh(renderable, &mesh);
 	}
 
 	void update() {
@@ -57,6 +58,7 @@ struct GameObject {
 struct Game {
 	inline static GameObject player;
 	inline static input::Gamepad* gamepad;
+	inline static graphics::PostProcess* postprocess;
 
 	static int init() {
 		engine.camera.isOrthographic = false;
@@ -65,6 +67,29 @@ struct Game {
 		player.init();
 		player.transform.scale = 0.05f;
 		player.transform.position[2] = -1;
+
+		postprocess = engine.renderer->createPostProcess(
+			R"(
+				#version 410
+
+				layout (location = 0) in vec2 in_texcoord;
+
+				layout (location = 0) out vec4 out_color;
+
+				uniform sampler2D sampler_texture;
+
+				void main() {
+					vec4 color = texture(sampler_texture, in_texcoord);
+					if (color.a == 0.0) {
+						out_color = color;
+						return;
+					}
+
+					out_color = color * vec4(1.0, 0.5, 0.0, 0.0);
+				}
+			)",
+			graphics::ShaderMedium::GLSL
+		);
 
 		graphics::Mesh mesh = graphics::Mesh();
 		mesh.vertices = {
@@ -190,6 +215,7 @@ struct Game {
 
 	static void destroy() {
 		player.deinit();
+		engine.renderer->destroyPostProcess(postprocess);
 	}
 };
 

@@ -1,5 +1,6 @@
 #include <kengine/graphics/opengl.hpp>
 #include <kengine/graphics/renderable.hpp>
+#include <kengine/graphics/postprocess.hpp>
 #include <kengine/logger.hpp>
 
 #include <glad/glad.h>
@@ -8,6 +9,12 @@
 #include <vector>
 
 namespace kengine::graphics {
+
+class PostProcessOpenGL : public PostProcess {
+public:
+	GLuint m_program;
+	u32 m_index;
+};
 
 class RenderableOpenGL : public Renderable {
 public:
@@ -43,9 +50,12 @@ public:
 	virtual void destroy();
 
 	virtual Renderable* createRenderable();
-	virtual void uploadRenderableMesh(Renderable* renderable, Mesh* mesh);
-	virtual Mesh downloadRenderableMesh(Renderable* renderable);
+	virtual void renderableUploadMesh(Renderable* renderable, Mesh* mesh);
+	virtual Mesh renderableDownloadMesh(Renderable* renderable);
 	virtual void destroyRenderable(Renderable* renderable);
+
+	virtual PostProcess* createPostProcess(const char* source, ShaderMedium medium);
+	virtual void destroyPostProcess(PostProcess* postProcess);
 
 	void createShaderGL(GLuint shader, const char* source);
 	GLuint createShaderProgramGL(std::vector<GLuint> shaders);
@@ -53,7 +63,11 @@ public:
 	Camera* m_camera;
 	Window* m_window;
 
+	GLuint m_quadVertexShader;
+
 	std::vector<RenderableOpenGL*> m_renderables;
+	std::vector<PostProcessOpenGL*> m_postProcesses;
+
 	GLuint m_lightingPassProgram;
 
 	GLuint m_geometryPassProgram;
@@ -62,6 +76,9 @@ public:
 	GLuint m_geometryPassColorTexture;
 	GLuint m_geometryPassFramebuffer;
 	GLint m_geometryPassMVPUniform;
+
+	GLuint m_intermediateTextures[2];
+	GLuint m_intermediateFramebuffers[2];
 };
 
 IRenderer* createOpenGLRenderer() {
@@ -110,12 +127,12 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 		
 		layout (location = 0) out vec3 out_pos;
 		layout (location = 1) out vec3 out_normal;
-		layout (location = 2) out vec3 out_color;
+		layout (location = 2) out vec4 out_color;
 
 		void main() {
 			out_pos = v_pos;
 			out_normal = v_normal;
-			out_color = v_color;
+			out_color = vec4(v_color, 1.0);
 		}
 	)";
 
@@ -164,15 +181,14 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 		}
 	)";
 
-	vshader = glCreateShader(GL_VERTEX_SHADER);
+	m_quadVertexShader = glCreateShader(GL_VERTEX_SHADER);
 	fshader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	createShaderGL(vshader, vlightingShaderSource);
+	createShaderGL(m_quadVertexShader, vlightingShaderSource);
 	createShaderGL(fshader, flightingShaderSource);
 
-	m_lightingPassProgram = createShaderProgramGL({ vshader, fshader });
+	m_lightingPassProgram = createShaderProgramGL({ m_quadVertexShader, fshader });
 
-	glDeleteShader(vshader);
 	glDeleteShader(fshader);
 
 	m_geometryPassMVPUniform = glGetUniformLocation(m_geometryPassProgram, "mvp");
@@ -204,6 +220,28 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 
 	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
 	glDrawBuffers(3, buffers);
+
+	glGenFramebuffers(2, m_intermediateFramebuffers);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[0]);
+
+	glGenTextures(2, m_intermediateTextures);
+	glBindTexture(GL_TEXTURE_2D, m_intermediateTextures[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_intermediateTextures[0], 0);
+
+	glDrawBuffers(1, buffers);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[1]);
+	glBindTexture(GL_TEXTURE_2D, m_intermediateTextures[1]);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_intermediateTextures[1], 0);
+
+	glDrawBuffers(1, buffers);
 }
 
 void RendererOpenGL::render() {
@@ -211,7 +249,7 @@ void RendererOpenGL::render() {
 	m_camera->calculateProjectionMatrix();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, m_geometryPassFramebuffer);
-	glClearColor(0, 0, 0, 1);
+	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(m_geometryPassProgram);
@@ -229,7 +267,7 @@ void RendererOpenGL::render() {
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_geometryPassFramebuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[1]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(m_lightingPassProgram);
 
@@ -244,13 +282,47 @@ void RendererOpenGL::render() {
 	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_color"), 2);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	usize outputFB = 0;
+	for (PostProcessOpenGL*& postprocess : m_postProcesses) {
+		glUseProgram(postprocess->m_program);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[outputFB]);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_intermediateTextures[1 - outputFB]);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "sampler_texture"), 0);
+
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		outputFB = 1 - outputFB;
+	}
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_intermediateFramebuffers[1 - outputFB]);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBlitFramebuffer(0, 0, m_window->width, m_window->height, 0, 0, m_window->width, m_window->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
 void RendererOpenGL::destroy() {
+	for (PostProcessOpenGL*& postprocess : m_postProcesses) {
+		delete postprocess;
+	}
+
 	for (RenderableOpenGL*& renderable : m_renderables) {
 		delete renderable;
 	}
+
+	glDeleteShader(m_quadVertexShader);
+
 	glDeleteProgram(m_geometryPassProgram);
+	glDeleteProgram(m_lightingPassProgram);
+
+	glDeleteTextures(1, &m_geometryPassTexture);
+	glDeleteTextures(1, &m_geometryPassNormalTexture);
+	glDeleteTextures(1, &m_geometryPassColorTexture);
+	glDeleteFramebuffers(1, &m_geometryPassFramebuffer);
+
+	glDeleteTextures(2, m_intermediateTextures);
+	glDeleteFramebuffers(2, m_intermediateFramebuffers);
 }
 
 Renderable* RendererOpenGL::createRenderable() {
@@ -261,7 +333,7 @@ Renderable* RendererOpenGL::createRenderable() {
 	return static_cast<Renderable*>(renderable);
 }
 
-void RendererOpenGL::uploadRenderableMesh(Renderable* renderable, Mesh* mesh) {
+void RendererOpenGL::renderableUploadMesh(Renderable* renderable, Mesh* mesh) {
 	RenderableOpenGL* r = static_cast<RenderableOpenGL*>(renderable);
 	glBindVertexArray(r->m_vertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, r->m_vertexBuffer);
@@ -296,7 +368,7 @@ void RendererOpenGL::uploadRenderableMesh(Renderable* renderable, Mesh* mesh) {
 	r->m_verticesCount = mesh->vertices.size();
 }
 
-Mesh RendererOpenGL::downloadRenderableMesh(Renderable* renderable) {
+Mesh RendererOpenGL::renderableDownloadMesh(Renderable* renderable) {
 	return Mesh();
 }
 
@@ -304,6 +376,28 @@ void RendererOpenGL::destroyRenderable(Renderable* renderable) {
 	RenderableOpenGL* r = static_cast<RenderableOpenGL*>(renderable);
 	m_renderables.erase(m_renderables.begin() + r->m_index);
 	delete renderable;
+}
+
+PostProcess* RendererOpenGL::createPostProcess(const char* source, ShaderMedium medium) {
+	GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
+	createShaderGL(shader, source);
+
+	GLuint program = createShaderProgramGL({ m_quadVertexShader, shader });
+
+	glDeleteShader(shader);
+
+	PostProcessOpenGL* postprocess = new PostProcessOpenGL();
+	postprocess->m_index = m_postProcesses.size();
+	postprocess->m_program = program;
+	m_postProcesses.push_back(postprocess);
+	return static_cast<PostProcess*>(postprocess);
+}
+
+void RendererOpenGL::destroyPostProcess(PostProcess* postProcess) {
+	PostProcessOpenGL* p = static_cast<PostProcessOpenGL*>(postProcess);
+	m_postProcesses.erase(m_postProcesses.begin() + p->m_index);
+	glDeleteProgram(p->m_program);
+	delete postProcess;
 }
 
 void RendererOpenGL::createShaderGL(GLuint shader, const char* source) {

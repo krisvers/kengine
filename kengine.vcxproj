@@ -157,6 +157,8 @@
     <ClInclude Include="kengine\include\kengine\graphics\opengl.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\renderable.hpp" />
     <ClInclude Include="kengine\include\kengine\graphics\renderer.hpp" />
+    <ClInclude Include="kengine\include\kengine\graphics\postprocess.hpp" />
+    <ClInclude Include="kengine\include\kengine\graphics\shader.hpp" />
     <ClInclude Include="kengine\include\kengine\input\gamepad.hpp" />
     <ClInclude Include="kengine\include\kengine\input\input.hpp" />
     <ClInclude Include="kengine\include\kengine\input\key.hpp" />
