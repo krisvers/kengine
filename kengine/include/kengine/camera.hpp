@@ -2,8 +2,8 @@
 #define KRISVERS_KENGINE_CAMERA_HPP
 
 #include <kengine/types.hpp>
-#include <kengine/util/vector.hpp>
 #include <kengine/util/matrix.hpp>
+#include <kengine/util/vector.hpp>
 
 namespace kengine {
 

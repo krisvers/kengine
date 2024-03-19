@@ -238,6 +238,10 @@ bool input::isKeyUp(InputKey key) {
 }
 
 void input::setKey(InputKey key, bool value) {
+	if (key >= InputKey::KEY_COUNT || key < static_cast<InputKey>(0)) {
+		return;
+	}
+
 	input::keys[static_cast<u32>(key)] = value;
 }
 

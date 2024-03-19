@@ -5,6 +5,7 @@
 
 #define KENGINE_UTIL_MATRIX_NO_IMPL
 #include <kengine/util/matrix.hpp>
+#undef KENGINE_UTIL_MATRIX_NO_IMPL
 
 #include <array>
 #include <initializer_list>

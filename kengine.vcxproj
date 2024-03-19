@@ -176,7 +176,7 @@
     <ClCompile Include="kengine\src\input\input_win32.cpp" />
     <ClCompile Include="kengine\src\kengine.cpp" />
     <ClCompile Include="kengine\src\logger.cpp" />
-    <ClCompile Include="kengine\src\window.cpp" />
+    <ClCompile Include="kengine\src\window_win32.cpp" />
     <ClCompile Include="lib\src\glad\glad.c" />
     <ClCompile Include="test\main.cpp" />
     <ClCompile Include="kengine\src\util\time.cpp" />
