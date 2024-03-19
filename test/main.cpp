@@ -1,4 +1,5 @@
 #include <kengine/kengine.hpp>
+#include <kengine/math/vector.hpp>
 #include <kengine/graphics/renderable.hpp>
 #include <kengine/graphics/mesh.hpp>
 #include <kengine/graphics/postprocess.hpp>
@@ -16,9 +17,9 @@ using namespace kengine;
 static KEngine engine = KEngine();
 
 struct Transform {
-	util::Vector<f32, 3> position;
-	util::Vector<f32, 3> rotation;
-	util::Vector<f32, 3> scale;
+	math::Vector<f32, 3> position;
+	math::Vector<f32, 3> rotation;
+	math::Vector<f32, 3> scale;
 
 	Transform() {
 		position = { 0, 0, 0 };
@@ -62,30 +63,28 @@ struct Game {
 
 	static int init() {
 		engine.camera.isOrthographic = false;
-		engine.camera.position[2] = 0;
+		engine.camera.position[2] = 2;
 
 		player.init();
 		player.transform.scale = 0.05f;
-		player.transform.position[2] = -1;
 
 		postprocess = engine.renderer->createPostProcess(
 			R"(
 				#version 410
 
-				layout (location = 0) in vec2 in_texcoord;
+				uniform sampler2D gbufferPosition;
+				uniform sampler2D gbufferNormal;
+				uniform sampler2D gbufferColor;
+				uniform sampler2D gbufferBatchID;
+
+				uniform sampler2D screenTexture;
+
+				layout (location = 0) in vec2 gbufferTexcoord;
 
 				layout (location = 0) out vec4 out_color;
 
-				uniform sampler2D sampler_texture;
-
 				void main() {
-					vec4 color = texture(sampler_texture, in_texcoord);
-					if (color.a == 0.0) {
-						out_color = color;
-						return;
-					}
-
-					out_color = color * vec4(1.0, 0.5, 0.0, 0.0);
+					out_color = vec4(texture(gbufferID, gbufferTexcoord).xyz, 1.0);
 				}
 			)",
 			graphics::ShaderMedium::GLSL
@@ -93,9 +92,9 @@ struct Game {
 
 		graphics::Mesh mesh = graphics::Mesh();
 		mesh.vertices = {
-			{ util::Vector<f32, 3>{ -1, -1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 1, 1, 0 }  },
-			{ util::Vector<f32, 3>{  1, -1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 1, 0, 1 }  },
-			{ util::Vector<f32, 3>{ -1,  1, 0 }, util::Vector<f32, 3>{ 0, 0, 1 }, util::Vector<f32, 3>{ 0, 1, 1 }  },
+			{ math::Vector<f32, 3>{ -1, -1, 0 }, math::Vector<f32, 3>{ 0, 0, 1 }, math::Vector<f32, 3>{ 1, 1, 0 }  },
+			{ math::Vector<f32, 3>{  1, -1, 0 }, math::Vector<f32, 3>{ 0, 0, 1 }, math::Vector<f32, 3>{ 1, 0, 1 }  },
+			{ math::Vector<f32, 3>{ -1,  1, 0 }, math::Vector<f32, 3>{ 0, 0, 1 }, math::Vector<f32, 3>{ 0, 1, 1 }  },
 		};
 
 		player.mesh(mesh);
@@ -106,7 +105,7 @@ struct Game {
 	}
 
 	static int update(f32 deltaTime) {
-		util::Vector<f32, 3> movement = {0,0,0};
+		math::Vector<f32, 3> movement = {0,0,0};
 		if (input::input::isKey(input::InputKey::KEY_W)) {
 			movement[1] += 1;
 		}
@@ -121,10 +120,10 @@ struct Game {
 		}
 
 		if (input::input::isKey(input::InputKey::KEY_UP)) {
-			engine.camera.position[2] += deltaTime;
+			engine.camera.position[2] -= deltaTime;
 		}
 		if (input::input::isKey(input::InputKey::KEY_DOWN)) {
-			engine.camera.position[2] -= deltaTime;
+			engine.camera.position[2] += deltaTime;
 		}
 		if (input::input::isKey(input::InputKey::KEY_RIGHT)) {
 			engine.camera.position[0] += deltaTime;

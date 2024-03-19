@@ -13,10 +13,10 @@ clean:
 
 kengine-static:
 	cd .. && make obj
-    ifeq ($(UNAME_S),Linux)
+    ifeq ($(UNAME),Linux)
 		cd .. && make obj-linux
     endif
-    ifeq ($(UNAME_S),Darwin)
+    ifeq ($(UNAME),Darwin)
 		cd .. && make obj-mac
     endif
 	cd .. && make link-static
