@@ -12,7 +12,7 @@ class Window {
 public:
 	u32 width;
 	u32 height;
-	bool closed = false;
+	bool closed;
 
 	Window(u32 width, u32 height) : Window(width, height, "Window") {};
 	Window(u32 width, u32 height, const char* title);

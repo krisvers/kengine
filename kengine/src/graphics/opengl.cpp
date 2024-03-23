@@ -28,7 +28,7 @@ public:
 		glGenVertexArrays(1, &m_vertexArray);
 
 		m_verticesCount = 0;
-		modelMatrix = util::Matrix<4, 4>().identity();
+		modelMatrix = math::Matrix<4, 4>().identity();
 	}
 
 	~RenderableOpenGL() {
@@ -57,7 +57,7 @@ public:
 	virtual PostProcess* createPostProcess(const char* source, ShaderMedium medium);
 	virtual void destroyPostProcess(PostProcess* postProcess);
 
-	void createShaderGL(GLuint shader, const char* source);
+	u8 createShaderGL(GLuint shader, const char* source);
 	GLuint createShaderProgramGL(std::vector<GLuint> shaders);
 
 	Camera* m_camera;
@@ -74,8 +74,11 @@ public:
 	GLuint m_geometryPassTexture;
 	GLuint m_geometryPassNormalTexture;
 	GLuint m_geometryPassColorTexture;
+	GLuint m_geometryPassBatchIDTexture;
 	GLuint m_geometryPassFramebuffer;
 	GLint m_geometryPassMVPUniform;
+	GLint m_geometryPassModelToWorldUniform;
+	GLint m_geometryPassBatchID;
 
 	GLuint m_intermediateTextures[2];
 	GLuint m_intermediateFramebuffers[2];
@@ -109,10 +112,18 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 		layout (location = 2) out vec3 v_color;
 
 		uniform mat4 mvp;
+		uniform mat4 modelToWorld;
+
+		const vec2 quadVertices[4] = vec2[](
+			vec2(-1.0, -1.0),
+			vec2(-1.0, 1.0),
+			vec2(1.0, -1.0),
+			vec2(1.0, 1.0)
+		);
 
 		void main() {
 			gl_Position = mvp * vec4(in_pos, 1.0);
-			v_pos = gl_Position.xyz;
+			v_pos = vec3(modelToWorld * vec4(in_pos, 1.0));
 			v_normal = in_normal;
 			v_color = in_color;
 		}
@@ -128,11 +139,15 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 		layout (location = 0) out vec3 out_pos;
 		layout (location = 1) out vec3 out_normal;
 		layout (location = 2) out vec4 out_color;
+		layout (location = 3) out uint out_batchID;
+
+		uniform uint batchID;
 
 		void main() {
 			out_pos = v_pos;
 			out_normal = v_normal;
 			out_color = vec4(v_color, 1.0);
+			out_batchID = batchID;
 		}
 	)";
 
@@ -157,41 +172,48 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 			vec2(1.0, 1.0)
 		);
 
-		layout (location = 0) out vec2 v_texcoord;
+		layout (location = 0) out vec2 gbufferTexcoord;
 
 		void main() {
 			gl_Position = vec4(quadVertices[gl_VertexID], 0.0, 1.0);
-			v_texcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
+			gbufferTexcoord = (quadVertices[gl_VertexID] + 1.0) / 2.0;
 		}
 	)";
 
 	const char* flightingShaderSource = R"(
 		#version 410
 
-		uniform sampler2D sampler_position;
-		uniform sampler2D sampler_normal;
-		uniform sampler2D sampler_color;
+		uniform sampler2D gbufferPosition;
+		uniform sampler2D gbufferNormal;
+		uniform sampler2D gbufferColor;
+		uniform sampler2D gbufferbatchID;
 
-		layout (location = 0) in vec2 v_texcoord;
+		layout (location = 0) in vec2 gbufferTexcoord;
 
 		layout (location = 0) out vec4 out_color;
 
 		void main() {
-			out_color = texture(sampler_color, v_texcoord);
+			out_color = texture(gbufferColor, gbufferTexcoord);
 		}
 	)";
 
 	m_quadVertexShader = glCreateShader(GL_VERTEX_SHADER);
 	fshader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	createShaderGL(m_quadVertexShader, vlightingShaderSource);
-	createShaderGL(fshader, flightingShaderSource);
+	if (createShaderGL(m_quadVertexShader, vlightingShaderSource) != 0) {
+		throw std::runtime_error("Failed to compile post-process vertex shader");
+	}
+	if (createShaderGL(fshader, flightingShaderSource) != 0) {
+		throw std::runtime_error("Failed to compile lighting fragment shader");
+	}
 
 	m_lightingPassProgram = createShaderProgramGL({ m_quadVertexShader, fshader });
 
 	glDeleteShader(fshader);
 
 	m_geometryPassMVPUniform = glGetUniformLocation(m_geometryPassProgram, "mvp");
+	m_geometryPassModelToWorldUniform = glGetUniformLocation(m_geometryPassProgram, "modelToWorld");
+	m_geometryPassBatchID = glGetUniformLocation(m_geometryPassProgram, "batchID");
 
 	glGenFramebuffers(1, &m_geometryPassFramebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_geometryPassFramebuffer);
@@ -199,6 +221,7 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 	glGenTextures(1, &m_geometryPassTexture);
 	glGenTextures(1, &m_geometryPassNormalTexture);
 	glGenTextures(1, &m_geometryPassColorTexture);
+	glGenTextures(1, &m_geometryPassBatchIDTexture);
 
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
@@ -218,8 +241,14 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_geometryPassColorTexture, 0);
 
-	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-	glDrawBuffers(3, buffers);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassBatchIDTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_geometryPassBatchIDTexture, 0);
+
+	GLenum buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
+	glDrawBuffers(4, buffers);
 
 	glGenFramebuffers(2, m_intermediateFramebuffers);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[0]);
@@ -259,27 +288,35 @@ void RendererOpenGL::render() {
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassBatchIDTexture);
 
-	util::Matrix<4, 4> vp = m_camera->getProjectionMatrix() * m_camera->getViewMatrix();
+	math::Matrix<4, 4> vp = m_camera->getProjectionMatrix() * m_camera->getViewMatrix();
+	u32 batchID = 0;
 	for (RenderableOpenGL*& renderable : m_renderables) {
+		glUniformMatrix4fv(m_geometryPassModelToWorldUniform, 1, GL_FALSE, renderable->modelMatrix.data());
 		glUniformMatrix4fv(m_geometryPassMVPUniform, 1, GL_FALSE, (vp * renderable->modelMatrix).data());
+		glUniform1ui(m_geometryPassBatchID, batchID);
 		renderable->draw();
+		++batchID;
 	}
 
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_geometryPassFramebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[1]);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(m_lightingPassProgram);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
-	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_position"), 0);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "gbufferPosition"), 0);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
-	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_normal"), 1);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "gbufferNormal"), 1);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
-	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "sampler_color"), 2);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "gbufferColor"), 2);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, m_geometryPassBatchIDTexture);
+	glUniform1i(glGetUniformLocation(m_lightingPassProgram, "gbufferBatchID"), 3);
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -289,9 +326,22 @@ void RendererOpenGL::render() {
 
 		glBindFramebuffer(GL_FRAMEBUFFER, m_intermediateFramebuffers[outputFB]);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_intermediateTextures[1 - outputFB]);
-		glUniform1i(glGetUniformLocation(postprocess->m_program, "sampler_texture"), 0);
+		glBindTexture(GL_TEXTURE_2D, m_geometryPassTexture);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "gbufferPosition"), 0);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, m_geometryPassNormalTexture);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "gbufferNormal"), 1);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, m_geometryPassColorTexture);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "gbufferColor"), 2);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, m_geometryPassBatchIDTexture);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "gbufferBatchID"), 3);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, m_intermediateFramebuffers[1 - outputFB]);
+		glUniform1i(glGetUniformLocation(postprocess->m_program, "screenTexture"), 4);
 
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		outputFB = 1 - outputFB;
@@ -357,9 +407,9 @@ void RendererOpenGL::renderableUploadMesh(Renderable* renderable, Mesh* mesh) {
 
 	constexpr GLsizei stride = Vertex::size();
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size()));
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 2));
-	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(util::Vector<f32, 3>::size() * 3));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(math::Vector<f32, 3>::size()));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(math::Vector<f32, 3>::size() * 2));
+	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<const void*>(math::Vector<f32, 3>::size() * 3));
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
@@ -380,7 +430,9 @@ void RendererOpenGL::destroyRenderable(Renderable* renderable) {
 
 PostProcess* RendererOpenGL::createPostProcess(const char* source, ShaderMedium medium) {
 	GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
-	createShaderGL(shader, source);
+	if (createShaderGL(shader, source) != 0) {
+		return nullptr;
+	}
 
 	GLuint program = createShaderProgramGL({ m_quadVertexShader, shader });
 
@@ -400,7 +452,7 @@ void RendererOpenGL::destroyPostProcess(PostProcess* postProcess) {
 	delete postProcess;
 }
 
-void RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
+u8 RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
 
@@ -410,8 +462,10 @@ void RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
 		char msg[512];
 		glGetShaderInfoLog(shader, 512, nullptr, msg);
 		logger::printf(LogType::ERROR, "GLSL vertex shader compilation failure: %s\n", msg);
-		throw std::runtime_error("GLSL vertex shader compilation failure");
+		return 1;
 	}
+
+	return 0;
 }
 
 GLuint RendererOpenGL::createShaderProgramGL(std::vector<GLuint> shaders) {
@@ -427,7 +481,7 @@ GLuint RendererOpenGL::createShaderProgramGL(std::vector<GLuint> shaders) {
 		char msg[512];
 		glGetProgramInfoLog(program, 512, nullptr, msg);
 		logger::printf(LogType::ERROR, "GLSL shader program linker failure: %s\n", msg);
-		throw std::runtime_error("GLSL shader program linker failure");
+		return 0;
 	}
 
 	return program;

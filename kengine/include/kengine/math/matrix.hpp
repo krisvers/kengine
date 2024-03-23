@@ -1,16 +1,14 @@
-#ifndef KRISVERS_KENGINE_UTIL_MATRIX_HPP
-#define KRISVERS_KENGINE_UTIL_MATRIX_HPP
+#ifndef KRISVERS_KENGINE_MATH_MATRIX_HPP
+#define KRISVERS_KENGINE_MATH_MATRIX_HPP
 
 #include <kengine/types.hpp>
+#include <kengine/math/vector.hpp>
 
 #include <cmath>
 #include <array>
 #include <stdexcept>
 
-namespace kengine::util {
-
-template<typename T, usize Count>
-class Vector;
+namespace kengine::math {
 
 template<usize Width, usize Height>
 class Matrix {
@@ -46,7 +44,7 @@ public:
 	Matrix& operator*=(const Matrix& matrix);
 	Matrix& operator=(const Matrix& matrix);
 	Vector<f32, Width> operator[](usize row);
-	//const Vector<f32, Width> operator[](usize row) const;
+	const Vector<f32, Width> operator[](usize row) const;
 
 	constexpr f32* data() noexcept;
 #endif
@@ -75,10 +73,7 @@ public:
 	}
 
 	Matrix& translate(const Vector<f32, 3>& vector) {
-		m_array[Width * 3] = vector[0];
-		m_array[Width * 3 + 1] = vector[1];
-		m_array[Width * 3 + 2] = vector[2];
-		return *this;
+		return rotate(vector.x(), vector.y(), vector.z());
 	}
 
 	Matrix& translateInPlace(f32 x, f32 y, f32 z) {
@@ -92,13 +87,7 @@ public:
 	}
 
 	Matrix& translateInPlace(const Vector<f32, 3>& vector) {
-		Matrix n = Matrix();
-		for (usize i = 0; i < Width; ++i) {
-			Vector<f32, 4> row4 = operator[](i);
-			Vector<f32, 3> row{ row4[0], row4[1], row4[2] };
-			m_array[Width * 3 + i] += row.mulInner(vector);
-		}
-		return *this;
+		return translateInPlace(vector.x(), vector.y(), vector.z());
 	}
 
 	Matrix& rotate(f32 x, f32 y, f32 z) {
@@ -129,30 +118,7 @@ public:
 	}
 
 	Matrix& rotate(const Vector<f32, 3>& vector) {
-		f32 sin = std::sin(vector[0]);
-		f32 cos = std::cos(vector[0]);
-
-		m_array[Width * 1 + 1] = cos;
-		m_array[Width * 1 + 2] = sin;
-		m_array[Width * 2 + 1] = -sin;
-		m_array[Width * 2 + 2] = cos;
-
-		sin = std::sin(vector[1]);
-		cos = std::cos(vector[1]);
-
-		m_array[Width * 0 + 0] = cos;
-		m_array[Width * 0 + 2] = -sin;
-		m_array[Width * 2 + 0] = sin;
-		m_array[Width * 2 + 2] = cos;
-
-		sin = std::sin(vector[2]);
-		cos = std::cos(vector[2]);
-
-		m_array[Width * 0 + 0] = cos;
-		m_array[Width * 0 + 1] = sin;
-		m_array[Width * 1 + 0] = -sin;
-		m_array[Width * 1 + 1] = cos;
-		return *this;
+		return rotate(vector.x(), vector.y(), vector.z());
 	}
 
 	Matrix& scale(f32 x, f32 y, f32 z) {
@@ -176,23 +142,7 @@ public:
 	}
 
 	Matrix& scale(const Vector<f32, 3>& vector) {
-		for (usize r = 0; r < Height; ++r) {
-			for (usize c = 0; c < Width; ++c) {
-				f32 s = 1;
-				if (r == 0) {
-					s = vector[0];
-				} else if (r == 1) {
-					s = vector[1];
-				} else if (r == 2) {
-					s = vector[2];
-				}
-
-				m_array[c + r * Width] *= s;
-			}
-
-		}
-
-		return *this;
+		return scale(vector.x(), vector.y(), vector.z());
 	}
 
 	Matrix& perspective(f32 fov, f32 aspect, f32 near, f32 far) {

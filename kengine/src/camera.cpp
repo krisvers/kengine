@@ -1,6 +1,10 @@
 #include <kengine/camera.hpp>
+#include <kengine/math/vector.hpp>
+#include <kengine/math/matrix.hpp>
 
+#ifndef M_PI
 #define M_PI 3.14159265358979323846f
+#endif
 
 namespace kengine {
 

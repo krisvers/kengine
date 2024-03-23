@@ -31,10 +31,10 @@ public:
 	virtual bool isButtonUp(GamepadButton button);
 
 	virtual f32 getAxis(GamepadAxis axis);
-	virtual util::Vector<f32, 2> getStick(GamepadStick stick);
+	virtual math::Vector<f32, 2> getStick(GamepadStick stick);
 
-	virtual util::Vector<f32, 2> getStickDeadzone(GamepadStick stick);
-	virtual void setStickDeadzone(GamepadStick stick, util::Vector<f32, 2> deadzone);
+	virtual math::Vector<f32, 2> getStickDeadzone(GamepadStick stick);
+	virtual void setStickDeadzone(GamepadStick stick, math::Vector<f32, 2> deadzone);
 
 	void disconnect() {
 		logger::printf(LogType::VERBOSE, "Controller \"%s\" disconnected %zu\n", deviceName, m_controller);
@@ -56,7 +56,7 @@ private:
 	u32 m_buttons[16];
 	u32 m_prevButtons[16];
 	f32 m_axes[6];
-	util::Vector<f32, 2> m_stickDeadzones[2];
+	math::Vector<f32, 2> m_stickDeadzones[2];
 
 	IDirectInputDevice8* m_device;
 	GUID m_deviceGUID;
@@ -261,8 +261,8 @@ f32 GamepadDirectInput::getAxis(GamepadAxis axis) {
 	return m_axes[static_cast<u32>(axis)];
 }
 
-util::Vector<f32, 2> GamepadDirectInput::getStick(GamepadStick stick) {
-	util::Vector<f32, 2> vector;
+math::Vector<f32, 2> GamepadDirectInput::getStick(GamepadStick stick) {
+	math::Vector<f32, 2> vector;
 	if (stick == GamepadStick::STICK_LEFT) {
 		vector[0] = m_axes[0];
 		vector[1] = m_axes[1];
@@ -274,11 +274,11 @@ util::Vector<f32, 2> GamepadDirectInput::getStick(GamepadStick stick) {
 	return vector;
 }
 
-util::Vector<f32, 2> GamepadDirectInput::getStickDeadzone(GamepadStick stick) {
+math::Vector<f32, 2> GamepadDirectInput::getStickDeadzone(GamepadStick stick) {
 	return m_stickDeadzones[static_cast<u32>(stick)];
 }
 
-void GamepadDirectInput::setStickDeadzone(GamepadStick stick, util::Vector<f32, 2> deadzone) {
+void GamepadDirectInput::setStickDeadzone(GamepadStick stick, math::Vector<f32, 2> deadzone) {
 	m_stickDeadzones[static_cast<u32>(stick)] = deadzone;
 }
 

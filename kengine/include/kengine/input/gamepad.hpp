@@ -2,7 +2,7 @@
 #define KRISVERS_KENGINE_INPUT_GAMEPAD_HPP
 
 #include <kengine/types.hpp>
-#include <kengine/util/vector.hpp>
+#include <kengine/math/vector.hpp>
 
 namespace kengine::input {
 
@@ -51,10 +51,10 @@ public:
 	virtual bool isButtonUp(GamepadButton button) = 0;
 
 	virtual f32 getAxis(GamepadAxis axis) = 0;
-	virtual util::Vector<f32, 2> getStick(GamepadStick stick) = 0;
+	virtual math::Vector<f32, 2> getStick(GamepadStick stick) = 0;
 
-	virtual util::Vector<f32, 2> getStickDeadzone(GamepadStick stick) = 0;
-	virtual void setStickDeadzone(GamepadStick stick, util::Vector<f32, 2> deadzone) = 0;
+	virtual math::Vector<f32, 2> getStickDeadzone(GamepadStick stick) = 0;
+	virtual void setStickDeadzone(GamepadStick stick, math::Vector<f32, 2> deadzone) = 0;
 
 	friend class input;
 };

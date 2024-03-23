@@ -1,21 +1,15 @@
-#ifndef KRISVERS_KENGINE_UTIL_VECTOR_HPP
-#define KRISVERS_KENGINE_UTIL_VECTOR_HPP
+#ifndef KRISVERS_KENGINE_MATH_VECTOR_HPP
+#define KRISVERS_KENGINE_MATH_VECTOR_HPP
 
 #include <kengine/types.hpp>
-
-#define KENGINE_UTIL_MATRIX_NO_IMPL
-#include <kengine/util/matrix.hpp>
-#undef KENGINE_UTIL_MATRIX_NO_IMPL
 
 #include <array>
 #include <initializer_list>
 #include <ostream>
 #include <string>
+#include <cmath>
 
-namespace kengine::util {
-
-template<usize Width, usize Height>
-class Matrix;
+namespace kengine::math {
 
 template<typename T, usize Count>
 class Vector {
@@ -26,6 +20,63 @@ public:
 	Vector(const std::initializer_list<T>& list) { std::copy(list.begin(), list.end(), m_array.data()); }
 	Vector(const Vector& vector) : m_array(vector.m_array) {}
 
+#ifdef KENGINE_UTIL_VECTOR_NO_IMPL
+	/* vector-vector operations */
+	Vector operator+(const Vector& vector);
+	Vector operator+=(const Vector& vector);
+	Vector operator-(const Vector& vector);
+	Vector operator-=(const Vector& vector);
+	Vector operator*(const Vector& vector);
+	Vector operator*=(const Vector& vector);
+	Vector operator/(const Vector& vector);
+	Vector operator/=(const Vector& vector);
+
+	Vector& operator=(const Vector& vector);
+	bool operator==(const Vector& vector);
+
+	/* scalar operations */
+	Vector operator+(T value);
+	Vector& operator+=(T value);
+	Vector operator-(T value);
+	Vector& operator-=(T value);
+	Vector operator*(T value);
+	Vector& operator*=(T value);
+	Vector operator/(T value);
+	Vector& operator/=(T value);
+	Vector& operator=(T value);
+
+	/* misc vector operations */
+	Vector mulCross(const Vector& vector);
+	f32 mulInner(const Vector& vector);
+	f32 magnitude();
+	Vector& normalize();
+	Vector normalized();
+	
+	/* stream overload */
+	friend std::ostream& operator<<(std::ostream& ostream, const Vector& vector);
+
+	/* subscript */
+	T& operator[](usize index);
+	const T& operator[](usize index) const;
+
+	/* swizzling */
+	T& x();
+	T& y();
+	T& z();
+	T& w();
+	const T& x() const;
+	const T& y() const;
+	const T& z() const;
+	const T& w() const;
+
+	/* accessing the underlying array */
+	std::array<T, Count> array();
+	constexpr auto begin() noexcept;
+	constexpr auto end() noexcept;
+	constexpr T* data() noexcept;
+#endif
+
+#ifndef KENGINE_UTIL_VECTOR_NO_IMPL
 	Vector operator+(const Vector& vector) {
 		Vector n = Vector();
 		for (usize i = 0; i < Count; ++i) {
@@ -84,17 +135,6 @@ public:
 			m_array[i] /= vector.m_array[i];
 		}
 		return *this;
-	}
-
-	Vector<T, 4> operator*(const Matrix<4, 4>& matrix) {
-		static_assert(Count == 3 || Count == 4);
-		Vector<f32, Count> n = Vector<f32, Count>();
-		for (usize r = 0; r < 4; ++r) {
-			for (usize c = 0; c < 4; ++c) {
-				n[c] += matrix[r][c] * m_array[r];
-			}
-		}
-		return n;
 	}
 
 	Vector mulCross(const Vector& vector) {
@@ -246,6 +286,11 @@ public:
 	T& operator[](usize index) { return m_array[index]; }
 	const T& operator[](usize index) const { return m_array[index]; }
 
+	T& x() { static_assert(Count >= 1); return m_array[0]; }
+	T& y() { static_assert(Count >= 2); return m_array[1]; }
+	T& z() { static_assert(Count >= 3); return m_array[2]; }
+	T& w() { static_assert(Count >= 4); return m_array[3]; }
+
 	const T& x() const { static_assert(Count >= 1); return m_array[0]; }
 	const T& y() const { static_assert(Count >= 2); return m_array[1]; }
 	const T& z() const { static_assert(Count >= 3); return m_array[2]; }
@@ -255,6 +300,7 @@ public:
 	constexpr auto begin() noexcept { return m_array.begin(); }
 	constexpr auto end() noexcept { return m_array.end(); }
 	constexpr T* data() noexcept { return m_array.data(); }
+#endif
 
 	static constexpr kengine::usize size() { return sizeof(T) * Count; }
 	static constexpr kengine::usize count() { return Count; }
