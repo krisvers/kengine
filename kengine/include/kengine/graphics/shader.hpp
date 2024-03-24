@@ -4,11 +4,28 @@
 namespace kengine::graphics {
 
 enum class ShaderType {
-	POSTPROCESS
+	Postprocess
 };
 
 enum class ShaderMedium {
-	GLSL
+	GLSL,
+	HLSL,
+	DXBC,
+	Metal,
+	SpirV,
+	Unknown
+};
+
+struct ShaderVersion {
+	u8 major;
+	u8 minor;
+	u8 patch;
+};
+
+struct ShaderDescriptor {
+	ShaderType type;
+	ShaderMedium medium;
+	ShaderVersion version;
 };
 
 } // namespace kengine::graphics

@@ -84,10 +84,14 @@ struct Game {
 				layout (location = 0) out vec4 out_color;
 
 				void main() {
-					out_color = vec4(texture(gbufferID, gbufferTexcoord).xyz, 1.0);
+					out_color = vec4(texture(gbufferBatchID, gbufferTexcoord).r, 0.0, 0.0, 1.0);
 				}
 			)",
-			graphics::ShaderMedium::GLSL
+			{
+				graphics::ShaderType::Postprocess,
+				graphics::ShaderMedium::GLSL,
+				{ 4, 1, 0 },
+			}
 		);
 
 		graphics::Mesh mesh = graphics::Mesh();

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <vector>
 
-namespace kengine::graphics {
+namespace kengine::graphics::opengl {
 
 class PostProcessOpenGL : public PostProcess {
 public:
@@ -43,18 +43,22 @@ public:
 	}
 };
 
-class RendererOpenGL : public IRenderer {
+class RendererOpenGL4_1 : public IRenderer {
 public:
 	virtual void init(Window& window, Camera& camera);
 	virtual void render();
 	virtual void destroy();
+
+	virtual RendererSupport getSupport() {
+		return { { RendererAPIType::OpenGL, { 4, 1, 0 } }, false };
+	}
 
 	virtual Renderable* createRenderable();
 	virtual void renderableUploadMesh(Renderable* renderable, Mesh* mesh);
 	virtual Mesh renderableDownloadMesh(Renderable* renderable);
 	virtual void destroyRenderable(Renderable* renderable);
 
-	virtual PostProcess* createPostProcess(const char* source, ShaderMedium medium);
+	virtual PostProcess* createPostProcess(const char* source, ShaderDescriptor shaderDescriptor);
 	virtual void destroyPostProcess(PostProcess* postProcess);
 
 	u8 createShaderGL(GLuint shader, const char* source);
@@ -84,15 +88,35 @@ public:
 	GLuint m_intermediateFramebuffers[2];
 };
 
+void getOpenGLSupportedRenderers(std::vector<RendererSupport>& renderers) {
+	RendererSupport renderer = {};
+	renderer.api.api = RendererAPIType::OpenGL;
+	renderer.api.version = { 4, 1, 0 };
+	renderer.isModule = false;
+	renderers.push_back(renderer);
+}
+
 IRenderer* createOpenGLRenderer() {
-	return reinterpret_cast<IRenderer*>(new RendererOpenGL());
+	return new RendererOpenGL4_1();
+}
+
+IRenderer* createOpenGLRendererWithSupport(RendererSupport renderer) {
+	if (renderer.api.api != RendererAPIType::OpenGL) {
+		return nullptr;
+	}
+
+	if (renderer.api.version.major != 4 || renderer.api.version.minor != 1) {
+		return nullptr;
+	}
+
+	return new RendererOpenGL4_1();
 }
 
 void destroyOpenGLRenderer(IRenderer* renderer) {
-	delete static_cast<RendererOpenGL*>(renderer);
+	delete static_cast<RendererOpenGL4_1*>(renderer);
 }
 
-void RendererOpenGL::init(Window& window, Camera& camera) {
+void RendererOpenGL4_1::init(Window& window, Camera& camera) {
 	if (!gladLoadGL()) {
 		throw std::runtime_error("Failed to initialize OpenGL context");
 	}
@@ -147,7 +171,7 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 			out_pos = v_pos;
 			out_normal = v_normal;
 			out_color = vec4(v_color, 1.0);
-			out_batchID = batchID;
+			out_batchID = 99999;
 		}
 	)";
 
@@ -186,7 +210,7 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 		uniform sampler2D gbufferPosition;
 		uniform sampler2D gbufferNormal;
 		uniform sampler2D gbufferColor;
-		uniform sampler2D gbufferbatchID;
+		uniform sampler2D gbufferBatchID;
 
 		layout (location = 0) in vec2 gbufferTexcoord;
 
@@ -242,7 +266,7 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, m_geometryPassColorTexture, 0);
 
 	glBindTexture(GL_TEXTURE_2D, m_geometryPassBatchIDTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_window->width, m_window->height, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, m_window->width, m_window->height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, m_geometryPassBatchIDTexture, 0);
@@ -273,7 +297,7 @@ void RendererOpenGL::init(Window& window, Camera& camera) {
 	glDrawBuffers(1, buffers);
 }
 
-void RendererOpenGL::render() {
+void RendererOpenGL4_1::render() {
 	m_camera->calculateViewMatrix();
 	m_camera->calculateProjectionMatrix();
 
@@ -352,7 +376,7 @@ void RendererOpenGL::render() {
 	glBlitFramebuffer(0, 0, m_window->width, m_window->height, 0, 0, m_window->width, m_window->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 }
 
-void RendererOpenGL::destroy() {
+void RendererOpenGL4_1::destroy() {
 	for (PostProcessOpenGL*& postprocess : m_postProcesses) {
 		delete postprocess;
 	}
@@ -375,7 +399,7 @@ void RendererOpenGL::destroy() {
 	glDeleteFramebuffers(2, m_intermediateFramebuffers);
 }
 
-Renderable* RendererOpenGL::createRenderable() {
+Renderable* RendererOpenGL4_1::createRenderable() {
 	RenderableOpenGL* renderable = new RenderableOpenGL();
 	renderable->m_index = m_renderables.size();
 	m_renderables.push_back(renderable);
@@ -383,7 +407,7 @@ Renderable* RendererOpenGL::createRenderable() {
 	return static_cast<Renderable*>(renderable);
 }
 
-void RendererOpenGL::renderableUploadMesh(Renderable* renderable, Mesh* mesh) {
+void RendererOpenGL4_1::renderableUploadMesh(Renderable* renderable, Mesh* mesh) {
 	RenderableOpenGL* r = static_cast<RenderableOpenGL*>(renderable);
 	glBindVertexArray(r->m_vertexArray);
 	glBindBuffer(GL_ARRAY_BUFFER, r->m_vertexBuffer);
@@ -418,17 +442,25 @@ void RendererOpenGL::renderableUploadMesh(Renderable* renderable, Mesh* mesh) {
 	r->m_verticesCount = mesh->vertices.size();
 }
 
-Mesh RendererOpenGL::renderableDownloadMesh(Renderable* renderable) {
+Mesh RendererOpenGL4_1::renderableDownloadMesh(Renderable* renderable) {
 	return Mesh();
 }
 
-void RendererOpenGL::destroyRenderable(Renderable* renderable) {
+void RendererOpenGL4_1::destroyRenderable(Renderable* renderable) {
 	RenderableOpenGL* r = static_cast<RenderableOpenGL*>(renderable);
 	m_renderables.erase(m_renderables.begin() + r->m_index);
 	delete renderable;
 }
 
-PostProcess* RendererOpenGL::createPostProcess(const char* source, ShaderMedium medium) {
+PostProcess* RendererOpenGL4_1::createPostProcess(const char* source, ShaderDescriptor shaderDescriptor) {
+	if (shaderDescriptor.medium != ShaderMedium::GLSL) {
+		throw std::runtime_error("Invalid shader medium");
+	}
+
+	if (shaderDescriptor.type != ShaderType::Postprocess) {
+		throw std::runtime_error("Invalid shader type");
+	}
+
 	GLuint shader = glCreateShader(GL_FRAGMENT_SHADER);
 	if (createShaderGL(shader, source) != 0) {
 		return nullptr;
@@ -445,14 +477,18 @@ PostProcess* RendererOpenGL::createPostProcess(const char* source, ShaderMedium 
 	return static_cast<PostProcess*>(postprocess);
 }
 
-void RendererOpenGL::destroyPostProcess(PostProcess* postProcess) {
+void RendererOpenGL4_1::destroyPostProcess(PostProcess* postProcess) {
+	if (postProcess == nullptr) {
+		return;
+	}
+
 	PostProcessOpenGL* p = static_cast<PostProcessOpenGL*>(postProcess);
 	m_postProcesses.erase(m_postProcesses.begin() + p->m_index);
 	glDeleteProgram(p->m_program);
 	delete postProcess;
 }
 
-u8 RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
+u8 RendererOpenGL4_1::createShaderGL(GLuint shader, const char* source) {
 	glShaderSource(shader, 1, &source, nullptr);
 	glCompileShader(shader);
 
@@ -468,7 +504,7 @@ u8 RendererOpenGL::createShaderGL(GLuint shader, const char* source) {
 	return 0;
 }
 
-GLuint RendererOpenGL::createShaderProgramGL(std::vector<GLuint> shaders) {
+GLuint RendererOpenGL4_1::createShaderProgramGL(std::vector<GLuint> shaders) {
 	GLuint program = glCreateProgram();
 	for (GLuint shader : shaders) {
 		glAttachShader(program, shader);
@@ -487,4 +523,4 @@ GLuint RendererOpenGL::createShaderProgramGL(std::vector<GLuint> shaders) {
 	return program;
 }
 
-} // namespace kengine::graphics
+} // namespace kengine::graphics::opengl

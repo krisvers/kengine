@@ -4,11 +4,13 @@
 #include <kengine/graphics/renderer.hpp>
 #include <kengine/types.hpp>
 
-namespace kengine::graphics {
+namespace kengine::graphics::opengl {
 
+void getOpenGLSupportedRenderers(std::vector<RendererSupport>& renderers);
 IRenderer* createOpenGLRenderer();
+IRenderer* createOpenGLRendererWithSupport(RendererSupport renderer);
 void destroyOpenGLRenderer(IRenderer* renderer);
 
-} // namespace kengine::graphics
+} // namespace kengine::graphics::opengl
 
 #endif

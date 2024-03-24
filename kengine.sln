@@ -9,6 +9,8 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		OpenGL RenderModule Debug|x64 = OpenGL RenderModule Debug|x64
+		OpenGL RenderModule Debug|x86 = OpenGL RenderModule Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
@@ -17,6 +19,10 @@ Global
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Debug|x64.Build.0 = Debug|x64
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Debug|x86.ActiveCfg = Debug|Win32
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Debug|x86.Build.0 = Debug|Win32
+		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.OpenGL RenderModule Debug|x64.ActiveCfg = OpenGL RenderModule Debug|x64
+		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.OpenGL RenderModule Debug|x64.Build.0 = OpenGL RenderModule Debug|x64
+		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.OpenGL RenderModule Debug|x86.ActiveCfg = OpenGL RenderModule Debug|Win32
+		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.OpenGL RenderModule Debug|x86.Build.0 = OpenGL RenderModule Debug|Win32
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Release|x64.ActiveCfg = Release|x64
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Release|x64.Build.0 = Release|x64
 		{A7DD7BB7-8F85-4D7E-93D5-F7A9B9C452D6}.Release|x86.ActiveCfg = Release|Win32

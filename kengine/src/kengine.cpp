@@ -8,7 +8,7 @@
 namespace kengine {
 
 KEngine::KEngine() : m_window(800, 600) {
-	renderer = graphics::createOpenGLRenderer();
+	renderer = graphics::createRenderer();
 }
 
 KEngine::KEngine(graphics::IRenderer* rend) : m_window(800, 600) {
