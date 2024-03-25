@@ -148,54 +148,54 @@ struct Game {
 			player.transform.rotation[2] += gamepad->getAxis(input::GamepadAxis::AXIS_RIGHT_X) * 10;
 
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_A)) {
-				logger::print(LogType::DEBUG, "A pressed\n");
+				logger::print(LogType::Debug, "A pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_B)) {
-				logger::print(LogType::DEBUG, "B pressed\n");
+				logger::print(LogType::Debug, "B pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_X)) {
-				logger::print(LogType::DEBUG, "X pressed\n");
+				logger::print(LogType::Debug, "X pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_Y)) {
-				logger::print(LogType::DEBUG, "Y pressed\n");
+				logger::print(LogType::Debug, "Y pressed\n");
 			}
 
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_DPAD_UP)) {
-				logger::print(LogType::DEBUG, "DPad up pressed\n");
+				logger::print(LogType::Debug, "DPad up pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_DPAD_DOWN)) {
-				logger::print(LogType::DEBUG, "DPad down pressed\n");
+				logger::print(LogType::Debug, "DPad down pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_DPAD_LEFT)) {
-				logger::print(LogType::DEBUG, "DPad left pressed\n");
+				logger::print(LogType::Debug, "DPad left pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_DPAD_RIGHT)) {
-				logger::print(LogType::DEBUG, "DPad right pressed\n");
+				logger::print(LogType::Debug, "DPad right pressed\n");
 			}
 
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_BACK)) {
-				logger::print(LogType::DEBUG, "back pressed\n");
+				logger::print(LogType::Debug, "back pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_GUIDE)) {
-				logger::print(LogType::DEBUG, "guide pressed\n");
+				logger::print(LogType::Debug, "guide pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_START)) {
-				logger::print(LogType::DEBUG, "start pressed\n");
+				logger::print(LogType::Debug, "start pressed\n");
 				return 1;
 			}
 
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_LEFT_SHOULDER)) {
-				logger::print(LogType::DEBUG, "Left bumper pressed\n");
+				logger::print(LogType::Debug, "Left bumper pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_RIGHT_SHOULDER)) {
-				logger::print(LogType::DEBUG, "Right bumper pressed\n");
+				logger::print(LogType::Debug, "Right bumper pressed\n");
 			}
 
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_LEFT_STICK)) {
-				logger::print(LogType::DEBUG, "Left stick pressed\n");
+				logger::print(LogType::Debug, "Left stick pressed\n");
 			}
 			if (gamepad->isButtonDown(input::GamepadButton::BUTTON_RIGHT_STICK)) {
-				logger::print(LogType::DEBUG, "Right stick pressed\n");
+				logger::print(LogType::Debug, "Right stick pressed\n");
 			}
 
 			if (!gamepad->connected) {
@@ -204,7 +204,7 @@ struct Game {
 		} else {
 			gamepad = input::input::getGamepad();
 			if (gamepad != nullptr) {
-				logger::printf(LogType::DEBUG, "Gamepad \"%s\" chosen for input\n", gamepad->deviceName);
+				logger::printf(LogType::Debug, "Gamepad \"%s\" chosen for input\n", gamepad->deviceName);
 			}
 		}
 

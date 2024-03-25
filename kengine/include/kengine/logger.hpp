@@ -8,11 +8,11 @@
 namespace kengine {
 
 enum class LogType {
-	VERBOSE = -2,
-	DEBUG = -1,
-	INFO = 0,
-	WARNING = 1,
-	ERROR = 2,
+	Verbose = -2,
+	Debug = -1,
+	Info = 0,
+	Warning = 1,
+	Error = 2,
 };
 
 class logger {

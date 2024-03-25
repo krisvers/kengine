@@ -497,7 +497,7 @@ u8 RendererOpenGL4_1::createShaderGL(GLuint shader, const char* source) {
 	if (success == GL_FALSE) {
 		char msg[512];
 		glGetShaderInfoLog(shader, 512, nullptr, msg);
-		logger::printf(LogType::ERROR, "GLSL vertex shader compilation failure: %s\n", msg);
+		logger::printf(LogType::Error, "GLSL vertex shader compilation failure: %s\n", msg);
 		return 1;
 	}
 
@@ -516,7 +516,7 @@ GLuint RendererOpenGL4_1::createShaderProgramGL(std::vector<GLuint> shaders) {
 	if (success == GL_FALSE) {
 		char msg[512];
 		glGetProgramInfoLog(program, 512, nullptr, msg);
-		logger::printf(LogType::ERROR, "GLSL shader program linker failure: %s\n", msg);
+		logger::printf(LogType::Error, "GLSL shader program linker failure: %s\n", msg);
 		return 0;
 	}
 

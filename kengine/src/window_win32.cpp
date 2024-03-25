@@ -106,7 +106,7 @@ void Window::inputPipeKey(input::InputKey key, bool value) {
 }
 
 void WindowCallbacks::glfwErrorCallback(int err, const char* msg) {
-	logger::printf(kengine::LogType::ERROR, "GLFW error %x: %s", err, msg);
+	logger::printf(kengine::LogType::Error, "GLFW error %x: %s", err, msg);
 }
 
 void WindowCallbacks::glfwWindowCloseCallback(GLFWwindow* window) {

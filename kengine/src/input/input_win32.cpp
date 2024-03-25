@@ -37,7 +37,7 @@ public:
 	virtual void setStickDeadzone(GamepadStick stick, math::Vector<f32, 2> deadzone);
 
 	void disconnect() {
-		logger::printf(LogType::VERBOSE, "Controller \"%s\" disconnected %zu\n", deviceName, m_controller);
+		logger::printf(LogType::Verbose, "Controller \"%s\" disconnected %zu\n", deviceName, m_controller);
 		connected = false;
 		zero();
 		m_device->Unacquire();
@@ -131,7 +131,7 @@ void input::init() {
 		memcpy(const_cast<void*>(reinterpret_cast<const void*>(gamepad->deviceName)), cstring.m_psz, 32);
 
 		input::gamepads.push_back(gamepad);
-		logger::printf(LogType::VERBOSE, "Found gamepad: %S\n", dev->tszProductName);
+		logger::printf(LogType::Verbose, "Found gamepad: %S\n", dev->tszProductName);
 		return TRUE;
 	}, nullptr, DIEDFL_ATTACHEDONLY);
 }
