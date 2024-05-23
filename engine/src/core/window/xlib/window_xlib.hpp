@@ -17,8 +17,6 @@ public:
 	void setTitle(std::string const& title) override;
 	void setSize(kengine::u32 width, kengine::u32 height) override;
 	void setPosition(kengine::s32 x, kengine::s32 y) override;
-
-	static WindowXlib* create(std::string const& title, kengine::u32 width, kengine::u32 height);
 };
 
 } // namespace kengine::core::window::xlib

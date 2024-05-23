@@ -29,8 +29,4 @@ void WindowXlib::setPosition(kengine::s32 x, kengine::s32 y) {
 
 }
 
-WindowXlib* WindowXlib::create(std::string const& title, kengine::u32 width, kengine::u32 height) {
-	return new WindowXlib(title, width, height);
-}
-
 }

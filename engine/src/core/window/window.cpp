@@ -18,7 +18,7 @@ IWindow* IWindow::create(std::string const& title, kengine::u32 width, kengine::
 #ifdef KENGINE_PLATFORM_WINDOWS
 	return new win32::WindowWin32(title, width, height);
 #elif defined(KENGINE_PLATFORM_LINUX)
-	return xlib::WindowXlib::create(title, width, height);
+	return new xlib::WindowXlib(title, width, height);
 #elif defined(KENGINE_PLATFORM_MACOS)
 	return new cocoa::WindowCocoa(title, width, height);
 #else
