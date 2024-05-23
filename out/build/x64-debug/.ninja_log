@@ -1,8 +1,0 @@
-# ninja log v5
-11	519	7381939651446439	CMakeFiles/kengine.dir/engine/src/core/kengine.cpp.obj	7680452b1fcdf859
-18	498	7381929148030679	CMakeFiles/kengine.dir/game/src/main.cpp.obj	43e8537a9f9f832d
-520	636	7381939652356427	kengine.exe	89c8063579e70784
-4	607	7381904947437965	CMakeFiles/kengine.dir/engine/src/core/graphics/dx10/renderer_dx10.cpp.obj	20cfc087423bb422
-1	8	0	clean	8c45b54705a541e8
-6	407	7381799707072690	CMakeFiles/kengine.dir/engine/src/core/graphics/renderer.cpp.obj	b103db086c3c5edd
-12	423	7381929588599089	CMakeFiles/kengine.dir/engine/src/core/window.cpp.obj	bd45b095f47e080d
