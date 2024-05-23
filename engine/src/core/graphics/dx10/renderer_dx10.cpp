@@ -1,4 +1,7 @@
 #include "renderer_dx10.hpp"
+
+#ifdef KENGINE_PLATFORM_WINDOWS
+
 #include <kengine/core/graphics/renderer.hpp>
 #include <d3d10.h>
 #include <stdexcept>
@@ -136,3 +139,5 @@ void RendererDX10::render() {
 }
 
 } // namespace kengine::core::graphics::dx10
+
+#endif // KENGINE_PLATFORM_WINDOWS

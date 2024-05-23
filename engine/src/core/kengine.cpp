@@ -5,7 +5,7 @@
 namespace kengine::core {
 
 void KEngine::run() {
-	Logger::logf("hello world");
+	Logger::logf(LogSeverity::VERBOSE, "hello world {}", "\"this is the zaza man speaking\"");
 	graphics::IRenderer* renderer = graphics::IRenderer::create();
 
 	while (true) {

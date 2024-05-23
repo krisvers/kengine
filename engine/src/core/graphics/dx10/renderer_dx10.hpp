@@ -1,6 +1,10 @@
 #ifndef KENGINE_CORE_GRAPHICS_DX10_RENDERER_HPP
 #define KENGINE_CORE_GRAPHICS_DX10_RENDERER_HPP
 
+#include <kengine/macros.hpp>
+
+#ifdef KENGINE_PLATFORM_WINDOWS
+
 #include <kengine/core/graphics/renderer.hpp>
 
 namespace kengine::core::graphics::dx10 {
@@ -23,5 +27,7 @@ private:
 };
 
 } // namespace kengine::core::graphics::dx10
+
+#endif // KENGINE_PLATFORM_WINDOWS
 
 #endif

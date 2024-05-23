@@ -3,36 +3,83 @@
 
 #include <iostream>
 #include <cstdio>
+#include <string>
+#include <sstream>
+#include <kengine/types.hpp>
 
 namespace kengine::core {
 
+enum class LogSeverity {
+	TRACE = -3,
+	VERBOSE = -2,
+	DEBUG = -1,
+	INFO = 0,
+	WARNING = 1,
+	ERROR = 2,
+	FATAL = 3,
+};
+
 class ILogger {
 public:
-	virtual void log(std::string const& message) = 0;
+	virtual void log(LogSeverity severity, std::string const& message) = 0;
 
-	void logf(std::string const& format) {
-		log(format);
+	void severityAsString(LogSeverity severity, std::string& string) {
+		switch (severity) {
+		case LogSeverity::TRACE:
+			string = "TRACE";
+			break;
+		case LogSeverity::VERBOSE:
+			string = "VERBOSE";
+			break;
+		case LogSeverity::DEBUG:
+			string = "DEBUG";
+			break;
+		case LogSeverity::INFO:
+			string = "INFO";
+			break;
+		case LogSeverity::WARNING:
+			string = "WARNING";
+			break;
+		case LogSeverity::ERROR:
+			string = "ERROR";
+			break;
+		case LogSeverity::FATAL:
+			string = "FATAL";
+			break;
+		default:
+			string = "UNKNOWN";
+		}
+	}
+
+	void logf(LogSeverity severity, std::string const& format) {
+		log(severity, format);
 	}
 
 	template<typename... Args>
-	void logf(std::string const& format, Args... args) {
+	void logf(LogSeverity severity, std::string const& format, Args... args) {
 		std::stringstream s;
 		logfConcat(s, format, args...);
-		log(s.str());
+		log(severity, s.str());
 	}
 
 private:
-	template<typename T, typename... Args>
-	void logfConcat(std::stringstream const& sstream, std::string const& format, T value, Args... args) {
+	template<typename T>
+	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T value) {
 		kengine::usize index = format.find("{}");
 		if (index == std::string::npos) {
 			sstream << format;
-			return;
+			return index;
 		}
 
 		sstream << format.substr(0, index);
 		sstream << value;
-		logfConcat(sstream, format.substr(index + 2), args...);
+		return index;
+	}
+
+	template<typename T, typename... Args>
+	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T value, Args... args) {
+		kengine::usize index = logfConcat(sstream, format, value);
+		return logfConcat(sstream, format.substr(index + 2), args...);
 	}
 };
 
@@ -40,8 +87,10 @@ class StreamLogger : public ILogger {
 public:
 	StreamLogger(std::ostream& s) : stream(s) {}
 
-	void log(std::string const& message) override {
-		stream << message << std::endl;
+	void log(LogSeverity severity, std::string const& message) override {
+		std::string sev;
+		severityAsString(severity, sev);
+		stream << "[" << sev << "] " << message << std::endl;
 	}
 
 private:
@@ -52,8 +101,10 @@ class CFileLogger : public ILogger {
 public:
 	CFileLogger(std::FILE* f) : file(f) {}
 
-	void log(std::string const& message) override {
-		std::fprintf(file, "%s\n", message.c_str());
+	void log(LogSeverity severity, std::string const& message) override {
+		std::string sev;
+		severityAsString(severity, sev);
+		std::fprintf(file, "[%s] %s\n", sev.c_str(), message.c_str());
 	}
 
 private:
@@ -96,29 +147,29 @@ public:
 
 	~Logger() { delete logger; }
 
-	static void log(std::string const& message) {
+	static void log(LogSeverity severity, std::string const& message) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
 
-		logger->log(message);
+		logger->log(severity, message);
 	}
 
-	static void logf(std::string const& format) {
+	static void logf(LogSeverity severity, std::string const& format) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
 
-		logger->logf(format);
+		logger->logf(severity, format);
 	}
 
 	template<typename... Args>
-	static void logf(std::string const& format, Args... args) {
+	static void logf(LogSeverity severity, std::string const& format, Args... args) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
 
-		logger->logf(format, args...);
+		logger->logf(severity, format, args...);
 	}
 
 private:

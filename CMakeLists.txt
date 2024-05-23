@@ -15,13 +15,25 @@ file(GLOB_RECURSE SOURCES "engine/src/*/*/*/*.cpp" "engine/src/*/*/*.cpp" "engin
 
 include_directories("engine/include")
 
-find_library(D3D10_LIBRARY d3d10)
-find_library(DXGI_LIBRARY dxgi)
+set(LIBRARIES "")
+set(INCLUDES "")
+
+if (WIN32)
+	find_library(D3D10_LIBRARY d3d10)
+	find_library(DXGI_LIBRARY dxgi)
+	string(APPEND LIBRARIES ${D3D10_LIBRARY} ${DXGI_LIBRARY})
+else()
+	set(OpenGL_GL_PREFERENCE "LEGACY")
+	find_package(OpenGL REQUIRED)
+	string(APPEND LIBRARIES ${OPENGL_LIBRARIES})
+	string(APPEND INCLUDES ${OPENGL_INCLUDE_DIRS})
+endif()
 
 # Add source to this project's executable.
 add_executable(kengine ${SOURCES})
 
-target_link_libraries(kengine ${D3D10_LIBRARY} ${DXGI_LIBRARY})
+include_directories(${INCLUDES})
+target_link_libraries(kengine ${LIBRARIES})
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET kengine PROPERTY CXX_STANDARD 17)
