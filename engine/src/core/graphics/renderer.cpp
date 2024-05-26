@@ -4,7 +4,7 @@
 
 namespace kengine::core::graphics {
 
-IRenderer* IRenderer::create() {
+IRenderer* Renderer::create() {
 #ifdef KENGINE_PLATFORM_WINDOWS
 	return new dx10::RendererDX10();
 #else
@@ -12,11 +12,11 @@ IRenderer* IRenderer::create() {
 #endif
 }
 
-void IRenderer::destroy(IRenderer* renderer) {
+void Renderer::destroy(IRenderer* renderer) {
 #ifdef KENGINE_PLATFORM_WINDOWS
-	delete (dx10::RendererDX10*) renderer;
+	delete dynamic_cast<dx10::RendererDX10*>(renderer);
 #else
-	delete (gl41::RendererGL41*) renderer;
+	delete dynamic_cast<gl41::RendererGL41*>(renderer);
 #endif
 }
 

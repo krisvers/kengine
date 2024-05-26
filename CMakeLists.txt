@@ -11,26 +11,30 @@ endif()
 
 project ("kengine")
 
-file(GLOB_RECURSE SOURCES "engine/src/*/*/*/*.cpp" "engine/src/*/*/*.cpp" "engine/src/*/*.cpp" "game/src/*.cpp")
+file(GLOB_RECURSE SOURCES "engine/src/*/*/*/*/*.cpp" "engine/src/*/*/*/*.cpp" "engine/src/*/*/*.cpp" "engine/src/*/*.cpp" "game/src/*.cpp")
 
 include_directories("engine/include")
 
-set(LIBRARIES "")
-set(INCLUDES "")
+set(LIBRARIES)
+set(INCLUDES)
 
 if (WIN32)
 	find_library(D3D10_LIBRARY d3d10)
 	find_library(DXGI_LIBRARY dxgi)
-	string(APPEND LIBRARIES ${D3D10_LIBRARY} ${DXGI_LIBRARY})
+	message(STATUS "Found D3D10: ${D3D10_LIBRARY}")
+	message(STATUS "Found DXGI: ${DXGI_LIBRARY}")
+	list(APPEND LIBRARIES ${D3D10_LIBRARY} ${DXGI_LIBRARY})
 else()
 	set(OpenGL_GL_PREFERENCE "LEGACY")
 	find_package(OpenGL REQUIRED)
-	string(APPEND LIBRARIES ${OPENGL_LIBRARIES})
-	string(APPEND INCLUDES ${OPENGL_INCLUDE_DIRS})
+	list(APPEND LIBRARIES ${OPENGL_LIBRARIES})
+	list(APPEND INCLUDES ${OPENGL_INCLUDE_DIRS})
 endif()
 
 # Add source to this project's executable.
 add_executable(kengine ${SOURCES})
+
+message(STATUS "Found libraries: ${LIBRARIES}")
 
 include_directories(${INCLUDES})
 target_link_libraries(kengine ${LIBRARIES})

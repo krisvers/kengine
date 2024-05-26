@@ -2,7 +2,9 @@
 #define KENGINE_CORE_WINDOW_WINDOW_HPP
 
 #include <string>
+
 #include <kengine/types.hpp>
+#include <kengine/singleton.hpp>
 
 namespace kengine::core::window {
 
@@ -20,11 +22,22 @@ public:
 	virtual void setSize(kengine::u32 width, kengine::u32 height) = 0;
 	virtual void setPosition(kengine::s32 x, kengine::s32 y) = 0;
 
-	static IWindow* create(std::string const& title);
-	static IWindow* create(kengine::u32 width, kengine::u32 height);
-	static IWindow* create(std::string const& title, kengine::u32 width, kengine::u32 height);
+	virtual bool isClosed() const = 0;
 
-	static void destroy(IWindow* window);
+	virtual std::string const& getTitle() const = 0;
+	virtual kengine::u32 getWidth() const = 0;
+	virtual kengine::u32 getHeight() const = 0;
+	virtual kengine::s32 getX() const = 0;
+	virtual kengine::s32 getY() const = 0;
+};
+
+class Window : public kengine::Singleton<Window> {
+public:
+	IWindow* create(std::string const& title);
+	IWindow* create(kengine::u32 width, kengine::u32 height);
+	IWindow* create(std::string const& title, kengine::u32 width, kengine::u32 height);
+
+	void destroy(IWindow* window);
 };
 
 } // namespace kengine::core::window

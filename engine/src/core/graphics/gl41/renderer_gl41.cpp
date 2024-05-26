@@ -1,7 +1,6 @@
 #include "renderer_gl41.hpp"
 
 #include <kengine/core/graphics/renderer.hpp>
-#include <GL/gl.h>
 #include <stdexcept>
 
 namespace kengine::core::graphics::gl41 {

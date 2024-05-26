@@ -3,6 +3,8 @@
 
 #include <stdexcept>
 
+#include <kengine/singleton.hpp>
+
 namespace kengine::core::graphics {
 
 class RendererException : public std::runtime_error {
@@ -17,9 +19,12 @@ protected:
 
 public:
 	virtual void render() = 0;
+};
 
-	static IRenderer* create();
-	static void destroy(IRenderer* renderer);
+class Renderer : public Singleton<Renderer> {
+public:
+	IRenderer* create();
+	void destroy(IRenderer* renderer);
 };
 
 } // namespace kengine::core

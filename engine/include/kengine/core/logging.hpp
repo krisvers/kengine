@@ -5,18 +5,20 @@
 #include <cstdio>
 #include <string>
 #include <sstream>
+
 #include <kengine/types.hpp>
+#include <kengine/singleton.hpp>
 
 namespace kengine::core {
 
 enum class LogSeverity {
-	TRACE = -3,
-	VERBOSE = -2,
-	DEBUG = -1,
-	INFO = 0,
-	WARNING = 1,
-	ERROR = 2,
-	FATAL = 3,
+	Trace = -3,
+	Verbose = -2,
+	Debug = -1,
+	Info = 0,
+	Warning = 1,
+	Error = 2,
+	Fatal = 3,
 };
 
 class ILogger {
@@ -25,25 +27,25 @@ public:
 
 	void severityAsString(LogSeverity severity, std::string& string) {
 		switch (severity) {
-		case LogSeverity::TRACE:
+		case LogSeverity::Trace:
 			string = "TRACE";
 			break;
-		case LogSeverity::VERBOSE:
+		case LogSeverity::Verbose:
 			string = "VERBOSE";
 			break;
-		case LogSeverity::DEBUG:
+		case LogSeverity::Debug:
 			string = "DEBUG";
 			break;
-		case LogSeverity::INFO:
+		case LogSeverity::Info:
 			string = "INFO";
 			break;
-		case LogSeverity::WARNING:
+		case LogSeverity::Warning:
 			string = "WARNING";
 			break;
-		case LogSeverity::ERROR:
+		case LogSeverity::Error:
 			string = "ERROR";
 			break;
-		case LogSeverity::FATAL:
+		case LogSeverity::Fatal:
 			string = "FATAL";
 			break;
 		default:
@@ -59,27 +61,52 @@ public:
 	void logf(LogSeverity severity, std::string const& format, Args... args) {
 		std::stringstream s;
 		logfConcat(s, format, args...);
+
 		log(severity, s.str());
 	}
 
 private:
 	template<typename T>
-	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T value) {
+	std::stringstream& logfValue(std::stringstream& sstream, T const& value) {
+		sstream << value;
+		return sstream;
+	}
+
+	template<>
+	std::stringstream& logfValue<bool>(std::stringstream& sstream, bool const& value) {
+		sstream << (value ? "true" : "false");
+		return sstream;
+	}
+
+	template<typename T>
+	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T const& value) {
 		kengine::usize index = format.find("{}");
 		if (index == std::string::npos) {
 			sstream << format;
-			return index;
+			return 0;
 		}
 
 		sstream << format.substr(0, index);
-		sstream << value;
-		return index;
+		logfValue(sstream, value) << format.substr(index + 2);
+		return std::string::npos;
 	}
 
 	template<typename T, typename... Args>
-	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T value, Args... args) {
-		kengine::usize index = logfConcat(sstream, format, value);
-		return logfConcat(sstream, format.substr(index + 2), args...);
+	kengine::usize logfConcat(std::stringstream& sstream, std::string const& format, T const& value, Args const&... args) {
+		kengine::usize index = format.find("{}");
+		if (index == std::string::npos) {
+			sstream << format;
+			return 0;
+		}
+
+		sstream << format.substr(0, index);
+		logfValue(sstream, value);
+
+		if (index + 2 < format.size()) {
+			return logfConcat(sstream, format.substr(index + 2), args...);
+		}
+
+		return index;
 	}
 };
 
@@ -111,9 +138,9 @@ private:
 	FILE* file;
 };
 
-class Logger {
+class Logger : public kengine::Singleton<Logger> {
 public:
-	Logger() {
+	void init() {
 		if (logger != nullptr) {
 			throw std::runtime_error("Logger already initialized");
 		}
@@ -121,7 +148,7 @@ public:
 		logger = new StreamLogger(std::cout);
 	}
 
-	Logger(ILogger* l) {
+	void init(ILogger* l) {
 		if (logger != nullptr) {
 			throw std::runtime_error("Logger already initialized");
 		}
@@ -129,7 +156,7 @@ public:
 		logger = l;
 	}
 
-	Logger(FILE* file) {
+	void init(FILE* file) {
 		if (logger != nullptr) {
 			throw std::runtime_error("Logger already initialized");
 		}
@@ -137,7 +164,7 @@ public:
 		logger = new CFileLogger(file);
 	}
 
-	Logger(std::ostream& s) {
+	void init(std::ostream& s) {
 		if (logger != nullptr) {
 			throw std::runtime_error("Logger already initialized");
 		}
@@ -145,9 +172,9 @@ public:
 		logger = new StreamLogger(s);
 	}
 
-	~Logger() { delete logger; }
+	void deinit() { delete logger; }
 
-	static void log(LogSeverity severity, std::string const& message) {
+	void log(LogSeverity severity, std::string const& message) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
@@ -155,7 +182,7 @@ public:
 		logger->log(severity, message);
 	}
 
-	static void logf(LogSeverity severity, std::string const& format) {
+	void logf(LogSeverity severity, std::string const& format) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
@@ -164,7 +191,7 @@ public:
 	}
 
 	template<typename... Args>
-	static void logf(LogSeverity severity, std::string const& format, Args... args) {
+	void logf(LogSeverity severity, std::string const& format, Args... args) {
 		if (logger == nullptr) {
 			logger = new StreamLogger(std::cout);
 		}
@@ -172,8 +199,10 @@ public:
 		logger->logf(severity, format, args...);
 	}
 
+	ILogger* getLogger() { return logger; }
+
 private:
-	inline static ILogger* logger;
+	ILogger* logger;
 };
 
 } // namespace kengine::core
