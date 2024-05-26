@@ -13,6 +13,7 @@ public:
 	virtual bool update() = 0;
 
 	virtual kengine::f64 getTime() = 0;
+	virtual ~IPlatform() = default;
 
 protected:
 	IPlatform() = default;

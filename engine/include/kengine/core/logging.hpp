@@ -25,6 +25,7 @@ enum class LogSeverity {
 class ILogger {
 public:
 	virtual void log(LogSeverity severity, std::string const& message) = 0;
+	virtual ~ILogger() = default;
 
 	void severityAsString(LogSeverity severity, std::string& string) {
 		switch (severity) {
@@ -73,14 +74,12 @@ private:
 		return sstream;
 	}
 
-	template<>
-	std::stringstream& logfValue<bool>(std::stringstream& sstream, bool const& value) {
+	std::stringstream& logfValue(std::stringstream& sstream, bool const& value) {
 		sstream << (value ? "true" : "false");
 		return sstream;
 	}
 
-	template<>
-	std::stringstream& logfValue<UUID>(std::stringstream& sstream, UUID const& value) {
+	std::stringstream& logfValue(std::stringstream& sstream, UUID const& value) {
 		sstream << value.toString();
 		return sstream;
 	}

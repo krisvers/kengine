@@ -29,4 +29,29 @@ void WindowXlib::setPosition(kengine::s32 x, kengine::s32 y) {
 
 }
 
+bool WindowXlib::isClosed() const {
+	return false;
 }
+
+std::string const& WindowXlib::getTitle() const {
+	static std::string s = "[to be implemented]";
+	return s;
+}
+
+kengine::u32 WindowXlib::getWidth() const {
+	return 100;
+}
+
+kengine::u32 WindowXlib::getHeight() const {
+	return 100;
+}
+
+kengine::s32 WindowXlib::getX() const {
+	return 0;
+}
+
+kengine::s32 WindowXlib::getY() const {
+	return 0;
+}
+
+} // namespace kengine::core::window::xlib

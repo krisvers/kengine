@@ -2,6 +2,7 @@
 #define KENGINE_TYPES_HPP
 
 #include <cstdint>
+#include <cstddef>
 
 namespace kengine {
 

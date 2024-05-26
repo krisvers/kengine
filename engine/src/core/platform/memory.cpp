@@ -95,7 +95,9 @@ void Memory::printAllocations(ILogger* logger, LogSeverity severity) {
 	for (kengine::s32 i = static_cast<kengine::s32>(AllocationTag::None); i < static_cast<kengine::s32>(AllocationTag::Max); ++i) {
 		bool printed = false;
 		kengine::u64 entryCount = 0;
-		for (auto const& [ptr, entry] : _allocations) {
+		for (auto it = _allocations.begin(); it != _allocations.end(); ++i) {
+			void* const& ptr = it->first;
+			AllocationEntry& entry = it->second;
 			if (entry.tag == static_cast<AllocationTag>(i)) {
 				if (!printed) {
 					logger->logf(severity, "  [{}]", allocationTagAsString(static_cast<AllocationTag>(i)));
@@ -103,7 +105,7 @@ void Memory::printAllocations(ILogger* logger, LogSeverity severity) {
 				}
 
 				logger->logf(severity, "    {}:", entryCount);
-				logger->logf(severity, "      address: 0x{}", ptr);
+				logger->logf(severity, "      address: {}", ptr);
 				logger->logf(severity, "      size: {} bytes", entry.size);
 				logger->logf(severity, "      aligned: {}", entry.aligned);
 				++entryCount;

@@ -17,6 +17,7 @@ namespace kengine::core::assets {
 
 template<typename T>
 class AssetReference : public UUID {
+public:
 	~AssetReference() = default;
 
 private:
