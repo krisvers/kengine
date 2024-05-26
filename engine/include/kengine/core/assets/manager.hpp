@@ -8,9 +8,22 @@
 
 #include <kengine/types.hpp>
 #include <kengine/singleton.hpp>
+#include <kengine/core/exception.hpp>
+#include <kengine/core/uuid.hpp>
 #include <kengine/core/assets/asset.hpp>
+#include <kengine/core/platform/memory.hpp>
 
 namespace kengine::core::assets {
+
+template<typename T>
+class AssetReference : public UUID {
+	~AssetReference() = default;
+
+private:
+	AssetReference() : UUID() {}
+
+	friend class Manager;
+};
 
 class Manager : public kengine::Singleton<Manager> {
 public:
@@ -18,137 +31,91 @@ public:
 	~Manager() = default;
 
 	template<typename T>
-	std::shared_ptr<T> load(std::string const& path) {
+	AssetReference<T> load(std::string const& path) {
 		static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
 
 		auto it = _assets.find(path);
 		if (it != _assets.end()) {
-			if (it->second->getUUID() != T::getUUIDStatic()) {
+			if (it->second.asset->getUUID() != T::getUUIDStatic()) {
 				throw Exception("Asset with path '{}' already loaded with different type", path);
 			}
 
-			return std::static_pointer_cast<T>(it->second);
+			++it->second.refCount;
+			AssetReference<T>* r = static_cast<AssetReference<T>*>(&it->second.uuid);
+			return *r;
 		}
 
-		auto asset = std::make_shared<T>();
+		AssetReference<T> ref = AssetReference<T>();
+		T* asset = static_cast<T*>(kengine::core::platform::Memory::get().alloc(sizeof(T), platform::AllocationTag::Asset));
+		new (asset) T();
 		if (!asset->load(path)) {
-			return nullptr;
+			kengine::core::platform::Memory::get().dealloc(asset, sizeof(T));
+			throw Exception("Failed to load asset with path '{}'", path);
 		}
 
-		_assets[path] = asset;
-		return asset;
+		_assets.emplace(path, ManagedAsset(ref, asset));
+		return ref;
 	}
 
 	template<typename T>
-	std::shared_ptr<T> getAsset(std::string const& path) {
-		static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
-
-		auto it = _assets.find(path);
-		if (it != _assets.end()) {
-			if (it->second->getUUID() != T::getUUIDStatic()) {
-				throw Exception("Asset with path '{}' and UUID '{}' has wrong type; expected UUID '{}'", path, it->second->getUUID(), T::getUUIDStatic());
-			}
-
-			return std::static_pointer_cast<T>(it->second);
-		}
-
-		return nullptr;
-	}
-
-	std::shared_ptr<IAsset> getAsset(std::string const& path) {
-		auto it = _assets.find(path);
-		if (it != _assets.end()) {
-			return it->second;
-		}
-
-		return nullptr;
-	}
-
-	template<typename T>
-	void release(std::string const& path) {
-		static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
-
-		auto it = _assets.find(path);
+	void unload(AssetReference<T> const& ref) {
+		auto it = _assets.find(ref.toString());
 		if (it == _assets.end()) {
+			throw Exception("Asset with UUID '{}' not found", ref.toString());
+		}
+
+		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
+			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
+		}
+
+		if (it->second.refCount > 1) {
+			--it->second.refCount;
 			return;
 		}
 
-		if (it->second->getUUID() != T::getUUIDStatic()) {
-			throw Exception("Asset with path '{}' and UUID '{}' has wrong type; expected UUID '{}'", path, it->second->getUUID(), T::getUUIDStatic());
-		}
-
-		if (it->second.use_count() > 1) {
-			return;
-		}
-
-		it->second->unload();
+		it->second.asset->unload();
+		kengine::core::platform::Memory::get().dealloc(it->second.asset, sizeof(T));
 		_assets.erase(it);
 	}
 
 	template<typename T>
-	void release(std::shared_ptr<T> asset) {
-		static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
-
-		auto it = _assets.begin();
-		while (it != _assets.end()) {
-			if (it->second == asset) {
-				if (it->second->getUUID() != T::getStaticUUID()) {
-					throw Exception("Asset with path '{}' and UUID '{}' has wrong type; expected UUID '{}'", it->first, it->second->getUUID(), T::getStaticUUID());
-				}
-
-				it->second->unload();
-				it = _assets.erase(it);
-			} else {
-				++it;
-			}
-		}
-	}
-
-	void release(std::string const& path) {
-		auto it = _assets.find(path);
+	T& getReference(AssetReference<T> const& ref) {
+		auto it = _assets.find(ref.toString());
 		if (it == _assets.end()) {
-			return;
+			throw Exception("Asset with UUID '{}' not found", ref.toString());
 		}
 
-		if (it->second.use_count() > 1) {
-			return;
+		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
+			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
 		}
 
-		it->second->unload();
-		_assets.erase(it);
-	}
-
-	void release(std::shared_ptr<IAsset> asset) {
-		auto it = _assets.begin();
-		while (it != _assets.end()) {
-			if (it->second == asset) {
-				it->second->unload();
-				it = _assets.erase(it);
-			} else {
-				++it;
-			}
-		}
+		return dynamic_cast<T&>(*it->second.asset);
 	}
 
 	template<typename T>
-	void unloadAll() {
-		static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
-
-		for (auto& asset : _assets) {
-			if (asset.second->getUUID() == T::getUUIDStatic()) {
-				asset.second->unload();
-			}
+	bool isLoaded(AssetReference<T> const& ref) {
+		auto it = _assets.find(ref.toString());
+		if (it == _assets.end()) {
+			return false;
 		}
-	}
 
-	void unloadAll() {
-		for (auto& asset : _assets) {
-			asset.second->unload();
+		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
+			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
 		}
+
+		return it->second.asset->isLoaded();
 	}
 
 private:
-	std::unordered_map<std::string, std::shared_ptr<IAsset>> _assets;
+	struct ManagedAsset {
+		UUID& uuid;
+		IAsset* asset = nullptr;
+		kengine::usize refCount = 1;
+
+		ManagedAsset(UUID& uuid, IAsset* asset) : uuid(uuid), asset(asset) {}
+	};
+
+	std::unordered_map<std::string, ManagedAsset> _assets;
 };
 
 } // namespace kengine::core::assets

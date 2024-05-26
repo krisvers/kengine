@@ -22,7 +22,8 @@ enum class AllocationTag {
 	Node = 10,
 	DataStructure = 11,
 	Engine = 12,
-	Max = 13,
+	Asset = 13,
+	Max = 14,
 
 	_Internal = -1,
 };

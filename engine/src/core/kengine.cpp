@@ -23,31 +23,16 @@ void KEngine::run() {
 	void* mem = platform::Memory::get().allocAligned(63, platform::AllocationTag::Engine);
 	platform::Memory::get().printAllocations(Logger::get().getLogger(), LogSeverity::Info);
 
-	std::shared_ptr<assets::TextAsset> textAsset = assets::Manager::get().load<assets::TextAsset>("test.txt");
-	if (textAsset) {
-		Logger::get().logf(LogSeverity::Info, "Loaded text asset with content: {}", textAsset->getText());
-	} else {
-		Logger::get().logf(LogSeverity::Error, "Failed to load text asset");
-	}
+	assets::AssetReference<assets::TextAsset> textAssetReference = assets::Manager::get().load<assets::TextAsset>("test.txt");
+	assets::TextAsset& textAsset = assets::Manager::get().getReference<assets::TextAsset>(textAssetReference);
 
-	std::shared_ptr<assets::TextAsset> textAsset2 = assets::Manager::get().load<assets::TextAsset>("test2.txt");
-	if (textAsset) {
-		Logger::get().logf(LogSeverity::Info, "Loaded text asset with content: {}", textAsset2->getText());
-	} else {
-		Logger::get().logf(LogSeverity::Error, "Failed to load text asset");
-	}
+	assets::AssetReference<assets::ImageAsset> imageAssetReference = assets::Manager::get().load<assets::ImageAsset>("test.png");
+	assets::ImageAsset& imageAsset = assets::Manager::get().getReference<assets::ImageAsset>(imageAssetReference);
 
-	std::shared_ptr<assets::ImageAsset> imageAsset = assets::Manager::get().load<assets::ImageAsset>("test.png");
-	if (imageAsset) {
-		Logger::get().logf(LogSeverity::Info, "Loaded image asset");
-	} else {
-		Logger::get().logf(LogSeverity::Error, "Failed to load image asset");
-	}
+	Logger::get().logf(LogSeverity::Info, "TextAsset data: {}", textAsset.getText());
+	Logger::get().logf(LogSeverity::Info, "ImageAsset UUID: {}", imageAsset.getUUID());
 
-	// log static and instance uuids
 	Logger::get().logf(LogSeverity::Info, "TextAsset static UUID: {}", assets::TextAsset::getUUIDStatic());
-	Logger::get().logf(LogSeverity::Info, "TextAsset instance UUID: {}", textAsset->getUUID());
-	Logger::get().logf(LogSeverity::Info, "TextAsset2 instance UUID: {}", textAsset2->getUUID());
 	Logger::get().logf(LogSeverity::Info, "ImageAsset static UUID: {}", assets::ImageAsset::getUUIDStatic());
 
 	while (!window->isClosed()) {

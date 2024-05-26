@@ -140,6 +140,8 @@ std::string Memory::allocationTagAsString(AllocationTag tag) {
 		return "DataStructure";
 	case AllocationTag::Engine:
 		return "Engine";
+	case AllocationTag::Asset:
+		return "Asset";
 	case AllocationTag::_Internal:
 		return "_Internal";
 	case AllocationTag::Max:
