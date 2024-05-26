@@ -5,6 +5,7 @@
 #include <kengine/core/platform/platform.hpp>
 #include <kengine/core/platform/memory.hpp>
 #include <kengine/core/assets/asset.hpp>
+#include <kengine/core/assets/manager.hpp>
 
 namespace kengine::core {
 
@@ -22,9 +23,32 @@ void KEngine::run() {
 	void* mem = platform::Memory::get().allocAligned(63, platform::AllocationTag::Engine);
 	platform::Memory::get().printAllocations(Logger::get().getLogger(), LogSeverity::Info);
 
-	assets::TextAsset textAsset;
-	textAsset.load("test.txt");
-	Logger::get().logf(LogSeverity::Info, "TextAsset loaded: {}", textAsset.getText());
+	std::shared_ptr<assets::TextAsset> textAsset = assets::Manager::get().load<assets::TextAsset>("test.txt");
+	if (textAsset) {
+		Logger::get().logf(LogSeverity::Info, "Loaded text asset with content: {}", textAsset->getText());
+	} else {
+		Logger::get().logf(LogSeverity::Error, "Failed to load text asset");
+	}
+
+	std::shared_ptr<assets::TextAsset> textAsset2 = assets::Manager::get().load<assets::TextAsset>("test2.txt");
+	if (textAsset) {
+		Logger::get().logf(LogSeverity::Info, "Loaded text asset with content: {}", textAsset2->getText());
+	} else {
+		Logger::get().logf(LogSeverity::Error, "Failed to load text asset");
+	}
+
+	std::shared_ptr<assets::ImageAsset> imageAsset = assets::Manager::get().load<assets::ImageAsset>("test.png");
+	if (imageAsset) {
+		Logger::get().logf(LogSeverity::Info, "Loaded image asset");
+	} else {
+		Logger::get().logf(LogSeverity::Error, "Failed to load image asset");
+	}
+
+	// log static and instance uuids
+	Logger::get().logf(LogSeverity::Info, "TextAsset static UUID: {}", assets::TextAsset::getUUIDStatic());
+	Logger::get().logf(LogSeverity::Info, "TextAsset instance UUID: {}", textAsset->getUUID());
+	Logger::get().logf(LogSeverity::Info, "TextAsset2 instance UUID: {}", textAsset2->getUUID());
+	Logger::get().logf(LogSeverity::Info, "ImageAsset static UUID: {}", assets::ImageAsset::getUUIDStatic());
 
 	while (!window->isClosed()) {
 		platform->update();

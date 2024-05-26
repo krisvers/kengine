@@ -8,6 +8,7 @@
 
 #include <kengine/types.hpp>
 #include <kengine/singleton.hpp>
+#include <kengine/core/uuid.hpp>
 
 namespace kengine::core {
 
@@ -75,6 +76,12 @@ private:
 	template<>
 	std::stringstream& logfValue<bool>(std::stringstream& sstream, bool const& value) {
 		sstream << (value ? "true" : "false");
+		return sstream;
+	}
+
+	template<>
+	std::stringstream& logfValue<UUID>(std::stringstream& sstream, UUID const& value) {
+		sstream << value.toString();
 		return sstream;
 	}
 

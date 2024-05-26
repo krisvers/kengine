@@ -4,12 +4,14 @@
 #include <stdexcept>
 
 #include <kengine/singleton.hpp>
+#include <kengine/core/exception.hpp>
 
 namespace kengine::core::graphics {
 
-class RendererException : public std::runtime_error {
+class RendererException : Exception {
 public:
-	RendererException(std::string const& message) : std::runtime_error(message) {}
+	RendererException(std::string const& message) : Exception(message) {}
+	RendererException(const char* message) : Exception(message) {}
 };
 
 class IRenderer {

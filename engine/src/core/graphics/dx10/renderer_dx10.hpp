@@ -11,7 +11,8 @@ namespace kengine::core::graphics::dx10 {
 
 class RendererExceptionDX10 : public RendererException {
 public:
-	RendererExceptionDX10(std::string const& message) : RendererException("(DX10 exception) " + message) {}
+	RendererExceptionDX10(std::string const& message) : RendererException(std::string("(DX10 exception) ") + message) {}
+	RendererExceptionDX10(const char* message) : RendererException(std::string("(DX10 exception) ") + message) {}
 };
 
 class RendererDX10 : public IRenderer {

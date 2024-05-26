@@ -16,7 +16,7 @@ public:
 	~File() = default;
 
 	bool load(std::string const& path) {
-		std::ifstream file(path);
+		std::ifstream file(path, std::ios::binary);
 		if (!file.is_open()) {
 			return false;
 		}

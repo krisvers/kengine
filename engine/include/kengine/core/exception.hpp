@@ -22,8 +22,8 @@ public:
 
 	template<typename... Args>
 	Exception(std::string const& format, Args... args) {
-		std::string fmt = "KEngine Exception: " + format;
-		Logger::get().logf(LogSeverity::Error, fmt, args...);
+		std::string fmt = "KEngine Exception: ";
+		Logger::get().logf(LogSeverity::Error, fmt + format, args...);
 	}
 
 	char const* what() const noexcept override { return _message.c_str(); }
