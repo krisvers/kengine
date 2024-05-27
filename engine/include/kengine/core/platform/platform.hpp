@@ -18,15 +18,15 @@ public:
 protected:
 	IPlatform() = default;
 
-	kengine::f64 _time;
+	kengine::f64 _time = 0;
 };
 
 class Platform : public Singleton<Platform> {
 public:
-	IPlatform* create();
-	void destroy(IPlatform* platform);
+	IPlatform& create();
+	void destroy(IPlatform& platform);
 
-	IPlatform* getPlatform() { return _platform; }
+	IPlatform& getPlatform() { return *_platform; }
 
 private:
 	IPlatform* _platform;

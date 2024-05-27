@@ -1,8 +1,13 @@
 #ifndef KENGINE_CORE_WINDOW_XLIB_WINDOW_HPP
 #define KENGINE_CORE_WINDOW_XLIB_WINDOW_HPP
 
-#include <kengine/core/window/window.hpp>
+#include <kengine/macros.hpp>
+
+#ifdef KENGINE_PLATFORM_LINUX
+
 #include <string>
+
+#include <kengine/core/window/window.hpp>
 
 namespace kengine::core::window::xlib {
 
@@ -18,16 +23,17 @@ public:
 	void setSize(kengine::u32 width, kengine::u32 height) override;
 	void setPosition(kengine::s32 x, kengine::s32 y) override;
 
-	virtual bool isClosed() const override;
+	bool isClosed() const override;
 
-	virtual std::string const& getTitle() const override;
-	virtual kengine::u32 getWidth() const override;
-	virtual kengine::u32 getHeight() const override;
-	virtual kengine::s32 getX() const override;
-	virtual kengine::s32 getY() const override;
+	std::string const& getTitle() const override;
+	kengine::u32 getWidth() const override;
+	kengine::u32 getHeight() const override;
+	kengine::s32 getX() const override;
+	kengine::s32 getY() const override;
 };
 
 } // namespace kengine::core::window::xlib
 
-#endif
+#endif // KENGINE_PLATFORM_LINUX
 
+#endif

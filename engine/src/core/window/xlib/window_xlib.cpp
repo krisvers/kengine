@@ -1,5 +1,7 @@
 #include "window_xlib.hpp"
 
+#ifdef KENGINE_PLATFORM_LINUX
+
 namespace kengine::core::window::xlib {
 
 WindowXlib::WindowXlib(std::string const& title, kengine::u32 width, kengine::u32 height) {
@@ -55,3 +57,5 @@ kengine::s32 WindowXlib::getY() const {
 }
 
 } // namespace kengine::core::window::xlib
+
+#endif // KENGINE_PLATFORM_LINUX

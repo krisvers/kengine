@@ -8,13 +8,23 @@
 
 namespace kengine::core::window {
 
+class IWindow;
+
+class Window : public kengine::Singleton<Window> {
+public:
+	IWindow& create(std::string const& title);
+	IWindow& create(kengine::u32 width, kengine::u32 height);
+	IWindow& create(std::string const& title, kengine::u32 width, kengine::u32 height);
+
+	void destroy(IWindow& window);
+};
+
 class IWindow {
 protected:
 	IWindow() = default;
-
-public:
 	virtual ~IWindow() = default;
 
+public:
 	virtual void show() = 0;
 	virtual void hide() = 0;
 
@@ -29,15 +39,6 @@ public:
 	virtual kengine::u32 getHeight() const = 0;
 	virtual kengine::s32 getX() const = 0;
 	virtual kengine::s32 getY() const = 0;
-};
-
-class Window : public kengine::Singleton<Window> {
-public:
-	IWindow* create(std::string const& title);
-	IWindow* create(kengine::u32 width, kengine::u32 height);
-	IWindow* create(std::string const& title, kengine::u32 width, kengine::u32 height);
-
-	void destroy(IWindow* window);
 };
 
 } // namespace kengine::core::window

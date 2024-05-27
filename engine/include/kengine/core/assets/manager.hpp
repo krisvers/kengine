@@ -18,7 +18,50 @@ namespace kengine::core::assets {
 template<typename T>
 class AssetReference : public UUID {
 public:
-	~AssetReference() = default;
+	~AssetReference() {
+		if (isLoaded()) {
+			Manager::get().unload<T>(*this);
+		}
+	}
+
+	AssetReference(AssetReference<T> const& other) : UUID(other) {
+		if (!Manager::get().copyReference<T>(*this)) {
+			throw Exception("Failed to copy AssetReference with UUID '{}'", other.toString());
+		}
+	}
+
+	AssetReference& operator=(AssetReference const& other) {
+		if (this == &other) {
+			return *this;
+		}
+
+		Manager::get().unload<T>(*this);
+		if (!Manager::get().copyReference<T>(other)) {
+			throw Exception("Failed to copy AssetReference with UUID '{}'", other.toString());
+		}
+
+		UUID::operator=(other);
+		return *this;
+	}
+
+	T& get() {
+		return Manager::get().getReference<T>(*this);
+	}
+
+	bool isLoaded() {
+		return Manager::get().isLoaded<T>(*this);
+	}
+
+	operator T&() {
+		return get();
+	}
+
+	operator T&() const {
+		return get();
+	}
+
+	AssetReference(AssetReference&&) = delete;
+	AssetReference& operator=(AssetReference&&) = delete;
 
 private:
 	AssetReference() : UUID() {}
@@ -46,68 +89,101 @@ public:
 			return *r;
 		}
 
-		AssetReference<T> ref = AssetReference<T>();
-		T* asset = static_cast<T*>(kengine::core::platform::Memory::get().alloc(sizeof(T), platform::AllocationTag::Asset));
-		new (asset) T();
+		T* asset = new T();
 		if (!asset->load(path)) {
-			kengine::core::platform::Memory::get().dealloc(asset, sizeof(T));
+			delete asset;
 			throw Exception("Failed to load asset with path '{}'", path);
 		}
 
+		AssetReference<T>& ref = *new AssetReference<T>();
 		_assets.emplace(path, ManagedAsset(ref, asset));
 		return ref;
 	}
 
 	template<typename T>
 	void unload(AssetReference<T> const& ref) {
-		auto it = _assets.find(ref.toString());
-		if (it == _assets.end()) {
-			throw Exception("Asset with UUID '{}' not found", ref.toString());
+		for (auto& it : _assets) {
+			if (it.second.uuid == ref) {
+				if (it.second.asset->getUUID() != T::getUUIDStatic()) {
+					throw Exception("Asset with UUID '{}' is not of type '{}' with uuid '{}'", ref.toString(), typeid(T).name(), T::getUUIDStatic());
+				}
+
+				if (it.second.refCount > 1) {
+					--it.second.refCount;
+					return;
+				}
+
+				it.second.asset->unload();
+				delete it.second.asset;
+				delete &ref;
+				_assets.erase(it.first);
+				return;
+			}
 		}
 
-		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
-			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
-		}
-
-		if (it->second.refCount > 1) {
-			--it->second.refCount;
-			return;
-		}
-
-		it->second.asset->unload();
-		kengine::core::platform::Memory::get().dealloc(it->second.asset, sizeof(T));
-		_assets.erase(it);
+		throw Exception("Asset with UUID '{}' not found", ref.toString());
 	}
 
 	template<typename T>
 	T& getReference(AssetReference<T> const& ref) {
-		auto it = _assets.find(ref.toString());
-		if (it == _assets.end()) {
-			throw Exception("Asset with UUID '{}' not found", ref.toString());
+		for (auto& it : _assets) {
+			if (it.second.uuid == ref) {
+				if (it.second.asset->getUUID() != T::getUUIDStatic()) {
+					throw Exception("Asset with UUID '{}' is not of type '{}' with uuid '{}'", ref.toString(), typeid(T).name(), T::getUUIDStatic());
+				}
+
+				return dynamic_cast<T&>(*it.second.asset);
+			}
 		}
 
-		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
-			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
-		}
-
-		return dynamic_cast<T&>(*it->second.asset);
+		throw Exception("Asset with UUID '{}' not found", ref.toString());
 	}
 
 	template<typename T>
 	bool isLoaded(AssetReference<T> const& ref) {
-		auto it = _assets.find(ref.toString());
-		if (it == _assets.end()) {
-			return false;
+		for (auto& it : _assets) {
+			if (it.second.uuid == ref) {
+				if (it.second.asset->getUUID() != T::getUUIDStatic()) {
+					throw Exception("Asset with UUID '{}' is not of type '{}' with uuid '{}'", ref.toString(), typeid(T).name(), T::getUUIDStatic());
+				}
+
+				return it.second.asset->isLoaded();
+			}
 		}
 
-		if (it->second.asset->getUUID() != T::getUUIDStatic()) {
-			throw Exception("Asset with UUID '{}' is not of type '{}'", ref.toString(), typeid(T).name());
+		return false;
+	}
+
+	void unloadAll() {
+		for (auto& it : _assets) {
+			it.second.asset->unload();
+			delete it.second.asset;
+			delete &it.second.uuid;
 		}
 
-		return it->second.asset->isLoaded();
+		_assets.clear();
 	}
 
 private:
+	template<typename T>
+	friend class AssetReference;
+
+	template<typename T>
+	bool copyReference(AssetReference<T> const& ref) {
+		for (auto& it : _assets) {
+			if (it.second.uuid == ref) {
+				if (it.second.asset->getUUID() != T::getUUIDStatic()) {
+					throw Exception("Asset with UUID '{}' is not of type '{}' with uuid '{}'", ref.toString(), typeid(T).name(), T::getUUIDStatic());
+				}
+
+				++it.second.refCount;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	struct ManagedAsset {
 		UUID& uuid;
 		IAsset* asset = nullptr;

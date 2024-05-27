@@ -9,30 +9,16 @@ struct Vertex {
 	float x, y, z;
 };
 
-class RendererGL41::Implementation {
-private:
+RendererGL41::RendererGL41(window::IWindow& window) : _window(window) {
 
-public:
-	Implementation() {
-	}
-
-	~Implementation() {
-	}
-
-	void render() {
-	}
-};
-
-RendererGL41::RendererGL41() {
-	impl = new RendererGL41::Implementation();
 }
 
 RendererGL41::~RendererGL41() {
-	delete impl;
+
 }
 
 void RendererGL41::render() {
-	impl->render();
+
 }
 
 } // namespace kengine::core::graphics::gl41
