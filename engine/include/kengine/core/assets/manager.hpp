@@ -17,11 +17,18 @@ namespace kengine::core::assets {
 
 template<typename T>
 class AssetReference : public UUID {
+	static_assert(std::is_base_of<UUIDAsset<T>, T>::value, "T must be a subclass of UUIDAsset");
+
 public:
 	~AssetReference() {
 		if (isLoaded()) {
 			Manager::get().unload<T>(*this);
 		}
+	}
+
+	AssetReference(std::string const& path) : UUID() {
+		AssetReference<T> ref = Manager::get().load<T>(path);
+		UUID::operator=(ref);
 	}
 
 	AssetReference(AssetReference<T> const& other) : UUID(other) {

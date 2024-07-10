@@ -6,6 +6,16 @@
 
 namespace kengine::core::platform {
 
+Memory::~Memory() {
+	if (_allocationCount > 0 || !_allocations.empty()) {
+		std::stringstream sstream;
+		StreamLogger logger = StreamLogger(sstream);
+		logger.logf(LogSeverity::Error, "Memory::~Memory: Memory leaks detected ({} bytes, {} allocations)", _allocationSize, _allocationCount);
+		printAllocations(&logger, LogSeverity::Error);
+		throw kengine::core::Exception(sstream.str());
+	}
+}
+
 void* Memory::alloc(kengine::u64 size, AllocationTag tag) {
 	if (size == 0) {
 		throw kengine::core::Exception("Memory::alloc: Trying to allocate 0 bytes");

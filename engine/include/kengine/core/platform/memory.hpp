@@ -30,6 +30,8 @@ enum class AllocationTag {
 
 class Memory : public Singleton<Memory> {
 public:
+	~Memory();
+
 	void* alloc(kengine::u64 size, AllocationTag tag);
 	void dealloc(void* ptr, kengine::u64 size);
 

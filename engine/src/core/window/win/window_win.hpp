@@ -31,6 +31,7 @@ public:
 	kengine::s32 getY() const override { return _y; }
 
 	HWND getHwnd() const { return _hwnd; }
+	HDC getHdc() const { return GetDC(_hwnd); }
 
 private:
 	inline static LRESULT CALLBACK hwndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);

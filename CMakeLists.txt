@@ -11,7 +11,7 @@ endif()
 
 project ("kengine")
 
-file(GLOB_RECURSE SOURCES "engine/src/*/*/*/*/*.cpp" "engine/src/*/*/*/*.cpp" "engine/src/*/*/*.cpp" "engine/src/*/*.cpp" "game/src/*.cpp")
+file(GLOB_RECURSE SOURCES "engine/src/*/*/*/*/*.cpp" "engine/src/*/*/*/*.cpp" "engine/src/*/*/*.cpp" "engine/src/*/*.cpp" "game/src/*.cpp" "engine/src/vendor/glad/glad.c")
 
 include_directories("engine/include")
 
@@ -34,11 +34,7 @@ endfunction()
 enable_cxx_compiler_flag_if_supported("-pedantic")
 
 if (WIN32)
-    find_library(D3D10_LIBRARY d3d10)
-    find_library(DXGI_LIBRARY dxgi)
-    message(STATUS "Found D3D10: ${D3D10_LIBRARY}")
-    message(STATUS "Found DXGI: ${DXGI_LIBRARY}")
-    list(APPEND LIBRARIES ${D3D10_LIBRARY} ${DXGI_LIBRARY})
+    list(APPEND LIBRARIES "opengl32.lib" "gdi32.lib" "user32.lib")
 else()
     set(OpenGL_GL_PREFERENCE "LEGACY")
     find_package(OpenGL REQUIRED)

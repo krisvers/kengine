@@ -5,6 +5,8 @@
 #include <kengine/core/platform/platform.hpp>
 #include <kengine/core/platform/memory.hpp>
 #include <kengine/core/assets/asset.hpp>
+#include <kengine/core/assets/text.hpp>
+#include <kengine/core/assets/image.hpp>
 #include <kengine/core/assets/manager.hpp>
 
 namespace kengine::core {
@@ -23,7 +25,7 @@ void KEngine::run() {
 	void* mem = platform::Memory::get().allocAligned(63, platform::AllocationTag::Engine);
 	platform::Memory::get().printAllocations(Logger::get().getLogger(), LogSeverity::Info);
 
-	assets::AssetReference<assets::TextAsset> textAssetReference = assets::Manager::get().load<assets::TextAsset>("test.txt");
+	assets::AssetReference<assets::TextAsset> textAssetReference{ "test.txt" };
 	assets::TextAsset& textAsset = textAssetReference.get();
 
 	assets::AssetReference<assets::ImageAsset> imageAssetReference = assets::Manager::get().load<assets::ImageAsset>("test.png");
