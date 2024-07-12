@@ -96,9 +96,9 @@ public:
 			return *r;
 		}
 
-		T* asset = new T();
+		T* asset = platform::Memory::get().alloc<T>(kengine::core::platform::AllocationTag::Asset);
 		if (!asset->load(path)) {
-			delete asset;
+			kengine::core::platform::Memory::get().dealloc<T>(asset);
 			throw Exception("Failed to load asset with path '{}'", path);
 		}
 
@@ -121,7 +121,7 @@ public:
 				}
 
 				it.second.asset->unload();
-				delete it.second.asset;
+				it.second.asset->dealloc();
 				delete &ref;
 				_assets.erase(it.first);
 				return;
@@ -164,7 +164,7 @@ public:
 	void unloadAll() {
 		for (auto& it : _assets) {
 			it.second.asset->unload();
-			delete it.second.asset;
+			it.second.asset->dealloc();
 			delete &it.second.uuid;
 		}
 

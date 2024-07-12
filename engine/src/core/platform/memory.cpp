@@ -1,5 +1,6 @@
 #include <kengine/core/platform/memory.hpp>
 #include <kengine/core/exception.hpp>
+#include <kengine/macros.hpp>
 
 #include <cstdlib>
 #include <cstring>
@@ -9,10 +10,21 @@ namespace kengine::core::platform {
 Memory::~Memory() {
 	if (_allocationCount > 0 || !_allocations.empty()) {
 		std::stringstream sstream;
-		StreamLogger logger = StreamLogger(sstream);
-		logger.logf(LogSeverity::Error, "Memory::~Memory: Memory leaks detected ({} bytes, {} allocations)", _allocationSize, _allocationCount);
-		printAllocations(&logger, LogSeverity::Error);
-		throw kengine::core::Exception(sstream.str());
+		Logger::get().logf(LogSeverity::Error, "Memory::~Memory: Memory leaks detected ({} bytes, {} allocations)", _allocationSize, _allocationCount);
+		printAllocations(Logger::get().getLogger(), LogSeverity::Error);
+
+		KENGINE_DEBUG_BREAK();
+
+		// free all unfreed allocation
+		for (const auto& [ptr, entry] : _allocations) {
+			if (entry.typed) {
+				_memoryTypes[entry.typeIndex]->dealloc(reinterpret_cast<void*>(ptr));
+			} else if (entry.aligned) {
+				deallocAligned(ptr, entry.size);
+			} else {
+				dealloc(ptr, entry.size);
+			}
+		}
 	}
 }
 
@@ -29,7 +41,7 @@ void* Memory::alloc(kengine::u64 size, AllocationTag tag) {
 	_allocationSize += size;
 	++_allocationCount;
 
-	_allocations[ptr] = { size, tag, false };
+	markAllocation(ptr, size, tag, false, false, false, size);
 	return ptr;
 }
 
@@ -40,6 +52,14 @@ void Memory::dealloc(void* ptr, kengine::u64 size) {
 
 	if (_allocations[ptr].size != size) {
 		throw kengine::core::Exception("Memory::dealloc: Trying to deallocate memory with a different size than it was allocated with");
+	}
+
+	if (_allocations[ptr].aligned) {
+		throw kengine::core::Exception("Memory::dealloc: Trying to deallocate aligned memory with Memory::dealloc, use Memory::deallocAligned instead");
+	}
+
+	if (_allocations[ptr].typed) {
+		throw kengine::core::Exception("Memory::dealloc: Trying to deallocate typed memory with Memory::dealloc, use Memory::dealloc<T> instead");
 	}
 
 	_allocationSize -= size;
@@ -61,11 +81,15 @@ void* Memory::allocAligned(kengine::u64 size, AllocationTag tag) {
 		newSize += alignment - remainder;
 	}
 
-	void* ptr = alloc(newSize, tag);
+	void* ptr = malloc(newSize);
+	if (ptr == nullptr) {
+		throw kengine::core::Exception("Memory::allocAligned Failed to allocate {} bytes", newSize);
+	}
 
-	AllocationEntry& entry = _allocations[ptr];
-	entry.size = size;
-	entry.aligned = true;
+	_allocationSize += newSize;
+	++_allocationCount;
+
+	markAllocation(ptr, size, tag, true, false, false, newSize);
 	return ptr;
 }
 
@@ -74,13 +98,38 @@ void Memory::deallocAligned(void* ptr, kengine::u64 size) {
 		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate 0 bytes");
 	}
 
-	kengine::u64 alignment = 16;
-	kengine::u64 remainder = size % alignment;
-	if (remainder != 0) {
-		size += alignment - remainder;
+	if (_allocations.find(ptr) == _allocations.end()) {
+		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate memory that was already freed or not allocated by Memory::allocAligned (possible double-free, or garbage pointer free)");
 	}
 
-	dealloc(ptr, size);
+	if (_allocations[ptr].typed) {
+		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate typed memory with Memory::deallocAligned, use Memory::dealloc<T> instead");
+	}
+
+	if (!_allocations[ptr].aligned) {
+		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate non-aligned memory with Memory::deallocAligned, use Memory::dealloc instead");
+	}
+
+	if (_allocations[ptr].size != size) {
+		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate memory with a different size than it was allocated with");
+	}
+
+	kengine::u64 alignment = 16;
+	kengine::u64 remainder = size % alignment;
+	kengine::u64 alignedSize = size;
+	if (remainder != 0) {
+		alignedSize += alignment - remainder;
+	}
+
+	if (_allocations[ptr].alignedSize != alignedSize) {
+		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate memory with a different aligned size than it was allocated with");
+	}
+	
+	_allocationSize -= alignedSize;
+	--_allocationCount;
+
+	_allocations.erase(ptr);
+	free(ptr);
 }
 
 void Memory::copy(void* dest, const void* src, kengine::u64 size) {
@@ -116,6 +165,11 @@ void Memory::printAllocations(ILogger* logger, LogSeverity severity) {
 				logger->logf(severity, "      address: {}", ptr);
 				logger->logf(severity, "      size: {} bytes", entry.size);
 				logger->logf(severity, "      aligned: {}", entry.aligned);
+				if (entry.aligned) {
+					logger->logf(severity, "      aligned size: {} bytes", entry.alignedSize);
+				}
+				logger->logf(severity, "      typed: {}", entry.typed);
+				logger->logf(severity, "      array: {}", entry.array);
 				++entryCount;
 			}
 		}
@@ -158,6 +212,14 @@ std::string Memory::allocationTagAsString(AllocationTag tag) {
 	default:
 		return "Unknown";
 	}
+}
+
+void Memory::markAllocation(void* ptr, kengine::u64 size, AllocationTag tag, bool aligned, bool typed, bool array, kengine::u64 alignedSize) {
+	_allocations[ptr] = { size, alignedSize, tag, aligned, typed, array };
+}
+
+void Memory::unmarkAllocation(void* ptr) {
+	_allocations.erase(ptr);
 }
 
 } // namespace kengine::core

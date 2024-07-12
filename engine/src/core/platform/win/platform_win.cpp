@@ -23,6 +23,7 @@ bool PlatformWin::update() {
 		DispatchMessageA(&msg);
 	}
 
+	Sleep(3);
 	return true;
 }
 

@@ -24,6 +24,8 @@ public:
 		static UUID uuid = UUID(0);
 		return uuid;
 	}
+
+	virtual void dealloc() = 0;
 };
 
 template<typename T>
@@ -35,6 +37,13 @@ public:
 		static UUID uuid = UUID();
 		return uuid;
 	}
+
+private:
+	void dealloc() override {
+		platform::Memory::get().dealloc<T>(static_cast<T*>(this));
+	}
+
+	friend class Manager;
 };
 
 } // namespace kengine::core::assets

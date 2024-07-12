@@ -2,6 +2,7 @@
 #define KENGINE_CORE_ASSETS_IMAGE_HPP
 
 #include <kengine/core/assets/asset.hpp>
+#include <kengine/core/fileio/file.hpp>
 
 namespace kengine::core::assets {
 
@@ -11,8 +12,13 @@ public:
 	~ImageAsset() = default;
 
 	bool load(std::string const& path) override {
-		// Load image
+		fileio::File<kengine::u8> file;
+		if (!file.load(path)) {
+			return false;
+		}
+
 		_isLoaded = true;
+		file.unload();
 		return true;
 	}
 
