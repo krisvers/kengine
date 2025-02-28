@@ -4,6 +4,12 @@
 #include <kengine/types.hpp>
 #include <kengine/util/math/sqrt.hpp>
 
+#ifdef min
+#undef min
+#endif
+
+#include <algorithm>
+
 namespace kengine::util::math {
 
 template<typename T, kengine::usize N>
@@ -37,6 +43,10 @@ public:
 		for (kengine::usize i = 0; i < N; ++i) {
 			_data[i] = other._data[i];
 		}
+	}
+
+	Vector(const std::initializer_list<T>& list) {
+		std::copy(list.begin(), list.end(), _data);
 	}
 
 	Vector<T, N>& operator=(const Vector<T, N>& other) {

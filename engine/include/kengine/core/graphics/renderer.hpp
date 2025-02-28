@@ -6,6 +6,7 @@
 #include <kengine/singleton.hpp>
 #include <kengine/core/exception.hpp>
 #include <kengine/core/window/window.hpp>
+#include <kengine/core/graphics/mesh.hpp>
 
 namespace kengine::core::graphics {
 
@@ -31,6 +32,8 @@ protected:
 
 public:
 	virtual void render() = 0;
+	virtual IMesh* createMesh() = 0;
+	virtual IObject* createObject(IMesh* mesh) = 0;
 };
 
 } // namespace kengine::core

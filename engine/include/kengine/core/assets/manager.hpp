@@ -26,10 +26,7 @@ public:
 		}
 	}
 
-	AssetReference(std::string const& path) : UUID() {
-		AssetReference<T> ref = Manager::get().load<T>(path);
-		UUID::operator=(ref);
-	}
+	AssetReference(std::string const& path) : UUID(Manager::get().load<T>(path)) {}
 
 	AssetReference(AssetReference<T> const& other) : UUID(other) {
 		if (!Manager::get().copyReference<T>(*this)) {

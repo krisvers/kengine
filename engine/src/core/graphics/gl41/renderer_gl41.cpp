@@ -75,6 +75,8 @@ void main() {
 	if (!_litShader.compile(vertexShaderSource, fragmentShaderSource)) {
 		throw Exception("Failed to compile lit shader");
 	}
+
+	glViewport(0, 0, 800, 600);
 }
 
 RendererGL41::~RendererGL41() {
@@ -158,14 +160,20 @@ void RendererGL41::render() {
 	glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glViewport(0, 0, 800, 600);
-
 	_intermediateFramebuffers[0].bindForReading();
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	glBlitFramebuffer(0, 0, 800, 600, 0, 0, 800, 600, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
 	_swapBuffers();
+}
+
+IMesh* RendererGL41::createMesh() {
+	return nullptr;
+}
+
+IObject* RendererGL41::createObject(IMesh* mesh) {
+	return nullptr;
 }
 
 } // namespace kengine::core::graphics::gl41

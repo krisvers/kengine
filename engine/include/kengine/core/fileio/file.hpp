@@ -26,7 +26,7 @@ public:
 		file.seekg(0, std::ios::beg);
 
 		_bytesize = size;
-		_data = reinterpret_cast<T*>(kengine::core::platform::Memory::get().alloc(sizeof(T) * size, platform::AllocationTag::File));
+		_data = platform::Memory::get().allocArray<T>(platform::AllocationTag::File, size);
 
 		file.read(reinterpret_cast<char*>(_data), size);
 		file.close();
@@ -40,7 +40,7 @@ public:
 			return;
 		}
 
-		kengine::core::platform::Memory::get().dealloc(_data, _bytesize);
+		kengine::core::platform::Memory::get().deallocArray(_data);
 		_data = nullptr;
 		_bytesize = 0;
 		_isLoaded = false;

@@ -38,9 +38,6 @@ void* Memory::alloc(kengine::u64 size, AllocationTag tag) {
 		throw kengine::core::Exception("Memory::alloc Failed to allocate {} bytes", size);
 	}
 
-	_allocationSize += size;
-	++_allocationCount;
-
 	markAllocation(ptr, size, tag, false, false, false, size);
 	return ptr;
 }
@@ -62,10 +59,7 @@ void Memory::dealloc(void* ptr, kengine::u64 size) {
 		throw kengine::core::Exception("Memory::dealloc: Trying to deallocate typed memory with Memory::dealloc, use Memory::dealloc<T> instead");
 	}
 
-	_allocationSize -= size;
-	--_allocationCount;
-
-	_allocations.erase(ptr);
+	unmarkAllocation(ptr);
 	free(ptr);
 }
 
@@ -85,9 +79,6 @@ void* Memory::allocAligned(kengine::u64 size, AllocationTag tag) {
 	if (ptr == nullptr) {
 		throw kengine::core::Exception("Memory::allocAligned Failed to allocate {} bytes", newSize);
 	}
-
-	_allocationSize += newSize;
-	++_allocationCount;
 
 	markAllocation(ptr, size, tag, true, false, false, newSize);
 	return ptr;
@@ -124,11 +115,8 @@ void Memory::deallocAligned(void* ptr, kengine::u64 size) {
 	if (_allocations[ptr].alignedSize != alignedSize) {
 		throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate memory with a different aligned size than it was allocated with");
 	}
-	
-	_allocationSize -= alignedSize;
-	--_allocationCount;
 
-	_allocations.erase(ptr);
+	unmarkAllocation(ptr);
 	free(ptr);
 }
 
@@ -216,10 +204,38 @@ std::string Memory::allocationTagAsString(AllocationTag tag) {
 
 void Memory::markAllocation(void* ptr, kengine::u64 size, AllocationTag tag, bool aligned, bool typed, bool array, kengine::u64 alignedSize) {
 	_allocations[ptr] = { size, alignedSize, tag, aligned, typed, array };
+
+	_allocationSize += size;
+	++_allocationCount;
 }
 
 void Memory::unmarkAllocation(void* ptr) {
-	_allocations.erase(ptr);
+	auto iter = _allocations.find(ptr);
+	if (iter == _allocations.end()) {
+		return;
+	}
+
+	kengine::u64 size = _allocations[ptr].size;
+	if (_allocations[ptr].aligned) {
+		kengine::u64 alignment = 16;
+		kengine::u64 remainder = _allocations[ptr].size % alignment;
+		kengine::u64 alignedSize = _allocations[ptr].size;
+
+		if (remainder != 0) {
+			alignedSize += alignment - remainder;
+		}
+
+		if (_allocations[ptr].alignedSize != alignedSize) {
+			throw kengine::core::Exception("Memory::deallocAligned: Trying to deallocate memory with a different aligned size than it was allocated with");
+		}
+
+		size = alignedSize;
+	}
+
+	_allocations.erase(iter);
+
+	_allocationSize -= size;
+	--_allocationCount;
 }
 
 } // namespace kengine::core

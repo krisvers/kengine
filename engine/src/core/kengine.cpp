@@ -17,40 +17,42 @@ void KEngine::run() {
 
 	platform.init();
 
-	window::IWindow& window = window::Window::get().create("KEngine Window", 800, 600);
-	window.show();
+	{
+		window::IWindow& window = window::Window::get().create("KEngine Window", 800, 600);
+		window.show();
 
-	graphics::IRenderer& renderer = graphics::Renderer::get().create(window);
+		graphics::IRenderer& renderer = graphics::Renderer::get().create(window);
 
-	void* mem = platform::Memory::get().allocAligned(63, platform::AllocationTag::Engine);
+		void* mem = platform::Memory::get().allocAligned(63, platform::AllocationTag::Engine);
 
-	assets::AssetReference<assets::TextAsset> textAssetReference{ "test.txt" };
-	assets::TextAsset& textAsset = textAssetReference.get();
+		assets::AssetReference<assets::TextAsset> textAssetReference{ "test.txt" };
+		assets::TextAsset& textAsset = textAssetReference.get();
 
-	try {
-		assets::AssetReference<assets::ImageAsset> imageAssetReference = assets::Manager::get().load<assets::ImageAsset>("test.png");
-		assets::ImageAsset& imageAsset = assets::Manager::get().getReference<assets::ImageAsset>(imageAssetReference);
-		Logger::get().logf(LogSeverity::Info, "ImageAsset UUID: {}", imageAsset.getUUID());
-	} catch (Exception) {
-		Logger::get().logf(LogSeverity::Error, "Failed to load image asset");
+		try {
+			assets::AssetReference<assets::ImageAsset> imageAssetReference = assets::Manager::get().load<assets::ImageAsset>("test.png");
+			assets::ImageAsset& imageAsset = assets::Manager::get().getReference<assets::ImageAsset>(imageAssetReference);
+			Logger::get().logf(LogSeverity::Info, "ImageAsset UUID: {}", imageAsset.getUUID());
+		} catch (Exception) {
+			Logger::get().logf(LogSeverity::Error, "Failed to load image asset");
+		}
+
+		Logger::get().logf(LogSeverity::Info, "TextAsset static UUID: {}", assets::TextAsset::getUUIDStatic());
+		Logger::get().logf(LogSeverity::Info, "ImageAsset static UUID: {}", assets::ImageAsset::getUUIDStatic());
+
+		platform::Memory::get().printAllocations(Logger::get().getLogger(), LogSeverity::Info);
+
+		while (!window.isClosed()) {
+			platform.update();
+			renderer.render();
+		}
+
+		assets::Manager::get().unloadAll();
+
+		platform::Memory::get().deallocAligned(mem, 63);
+
+		graphics::Renderer::get().destroy(renderer);
+		window::Window::get().destroy(window);
 	}
-
-	Logger::get().logf(LogSeverity::Info, "TextAsset static UUID: {}", assets::TextAsset::getUUIDStatic());
-	Logger::get().logf(LogSeverity::Info, "ImageAsset static UUID: {}", assets::ImageAsset::getUUIDStatic());
-
-	platform::Memory::get().printAllocations(Logger::get().getLogger(), LogSeverity::Info);
-
-	while (!window.isClosed()) {
-		platform.update();
-		renderer.render();
-	}
-
-	assets::Manager::get().unloadAll();
-
-	platform::Memory::get().deallocAligned(mem, 63);
-
-	graphics::Renderer::get().destroy(renderer);
-	window::Window::get().destroy(window);
 
 	platform.shutdown();
 }

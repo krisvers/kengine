@@ -38,9 +38,13 @@ public:
 		_source = std::string(file.getData(), file.getBytesize());
 	}
 
-	void unload() override;
+	void unload() override {
+		_source.clear();
+	}
 
-	bool isLoaded() override;
+	bool isLoaded() override {
+		return !_source.empty();
+	}
 
 	ShaderMedium getMedium() const override { return ShaderMedium::Glsl; }
 	const char* getSource() const override { return _source; }

@@ -126,10 +126,10 @@ public:
 		unmarkAllocation(ptr);
 	}
 
-	template<typename T, kengine::usize N>
-	T* allocArray(AllocationTag tag) {
-		T* ptr = new T[N];
-		markAllocation(ptr, sizeof(T) * N, tag, false, true, true, sizeof(T));
+	template<typename T>
+	T* allocArray(AllocationTag tag, usize size) {
+		T* ptr = new T[size];
+		markAllocation(ptr, sizeof(T) * size, tag, false, true, true, sizeof(T));
 
 		UUIDMemoryType<T> type;
 		for (kengine::usize i = 0; i < _memoryTypes.size(); ++i) {

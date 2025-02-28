@@ -151,8 +151,6 @@ public:
 		glUniform4fv(glGetUniformLocation(_program, name), 1, vec.data());
 	}
 
-
-
 private:
 	GLuint _program;
 };
@@ -163,6 +161,8 @@ public:
 	~RendererGL41();
 
 	void render() override;
+	IMesh* createMesh() override;
+	IObject* createObject(IMesh* mesh) override;
 
 private:
 	void _initGL();

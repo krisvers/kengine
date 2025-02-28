@@ -64,8 +64,23 @@ struct TagData : public UUIDTagData<TagData> {
 
 class EventSystem : public Singleton<EventSystem> {
 public:
-	void createEventCallback(std::string eventName, EventCallback callback);
-	void triggerEvent(std::string eventName, IEventData* data);
+	void createEventCallback(std::string eventName, EventCallback callback) {
+		if (m_eventCallbacks.find(eventName) != m_eventCallbacks.end()) {
+			Logger::get().logf(LogSeverity::Warning, "Event {} already exists", eventName);
+			return;
+		}
+
+		m_eventCallbacks[eventName] = callback;
+	}
+
+	void triggerEvent(std::string eventName, IEventData* data) {
+		if (m_eventCallbacks.find(eventName) == m_eventCallbacks.end()) {
+			Logger::get().logf(LogSeverity::Warning, "Event {} does not exist", eventName);
+			return;
+		}
+		
+		m_eventCallbacks[eventName](data);
+	}
 
 	template<typename T>
 	void createTag(std::string tagName) {
